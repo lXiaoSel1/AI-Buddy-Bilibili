@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readingWatchStatus,watchFeedback} from '../src/client/watch-state.mjs';
+const active={activityId:'a',state:'understanding',activityRevision:2,readingRevision:3,confirmed:true,reason:null};
+test('old history and a null reason cannot revive a cleared confirmation warning',()=>{assert.deepEqual(watchFeedback(active,{id:'a',state:'paused',statusRevision:1,pauseReason:'OLD'}),active);assert.equal(readingWatchStatus({...active,reason:'OLD'},{confirmed:true,phase:'reading',activityRevision:2,readingRevision:4,modelReason:null},'a').reason,null);});
+test('newer activity failures and stops beat a preceding reading observation',()=>{for(const state of ['failed','cancelled']){const view=watchFeedback(active,{id:'a',state,statusRevision:3,lastFailureCode:'ACTUAL'});assert.equal(view.state,state);assert.equal(view.reason,'ACTUAL');}});
+test('late reading observations and another activity cannot overwrite the current status',()=>{assert.equal(readingWatchStatus(active,{phase:'paused',activityRevision:1,readingRevision:9},'a'),active);assert.equal(readingWatchStatus(active,{phase:'paused',activityRevision:2,readingRevision:2},'a'),active);assert.equal(readingWatchStatus(active,{phase:'failed',activityRevision:20,readingRevision:20},'other'),active);});
+test('a confirmed actual failure remains visible at the same activity revision',()=>{const view=readingWatchStatus(active,{confirmed:true,phase:'failed',activityRevision:2,readingRevision:4,modelReason:'ACTUAL',needsReview:true},'a');assert.equal(view.state,'failed');assert.equal(view.reason,'ACTUAL');assert.equal(view.needsReview,true);assert.equal(view.awaitingConfirmation,false);});

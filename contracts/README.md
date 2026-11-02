@@ -1,0 +1,3 @@
+# Runtime contract
+
+proposal.json is the unchanged runtime wire/schema input, despite its historical filename. SHA-256 is calculated from JSON.parse followed by JSON.stringify. The current package records hash bdf864c287afdbf0e289e9414c29e624660f6e1dc6befaaef8c5079a66280a3b, bridge 1.3.0 and data schema 1. Runtime capability negotiation and host acknowledgement remain mandatory. Existing feature strings ending in -candidate are retained compatibility identifiers, not current release status. Historic draft A-ACK/CONTRACT-PROPOSAL documents are excluded because their stale unsigned proposal status is not the current accepted install/load evidence. See docs/VALIDATION.md.

@@ -1,0 +1,2 @@
+# Preserve exact exported LF/CRLF source and license bytes on every checkout.
+* -text

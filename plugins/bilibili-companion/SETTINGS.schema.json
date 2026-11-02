@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "autonomousEnabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "maxConcurrent": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 1
+    },
+    "dailyWatchLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 5
+    },
+    "dailyCommentLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 3
+    },
+    "commentMode": {
+      "enum": [
+        "off",
+        "managed"
+      ],
+      "default": "off"
+    },
+    "commentConsent": {
+      "type": "boolean",
+      "default": false
+    },
+    "commentReview": {
+      "enum": [
+        "direct",
+        "preview"
+      ],
+      "default": "direct"
+    },
+    "shareMode": {
+      "enum": [
+        "selected",
+        "record-only",
+        "after-chat"
+      ],
+      "default": "selected"
+    },
+    "resumeMode": {
+      "enum": [
+        "idle",
+        "manual"
+      ],
+      "default": "idle"
+    },
+    "connectionRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "modelConnectionRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "startMinute": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1439
+    },
+    "endMinute": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1440
+    },
+    "defaultCharacterId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 300,
+      "default": null
+    },
+    "visualAutoApproved": {
+      "type": "boolean",
+      "default": false
+    },
+    "sampleSeconds": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 60,
+      "default": 0.5
+    },
+    "windowSeconds": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 3600,
+      "default": 6
+    }
+  }
+}

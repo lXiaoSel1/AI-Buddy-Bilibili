@@ -1,0 +1,69 @@
+{
+  "name": "@ai-buddy/bilibili-companion",
+  "version": "2.0.11",
+  "description": "AI Buddy Bilibili companion — frozen plans, source frames, subtitles and durable receipts",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE.md",
+    "THIRD-PARTY-NOTICES.md",
+    "CHANGELOG.md",
+    "DEFAULTS.json",
+    "SETTINGS.schema.json",
+    "DATA-SCHEMA.json",
+    "CONTRACT.json",
+    "SOURCE-INPUTS.json",
+    "BUILD-INVENTORY.json"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "engines": {
+    "node": ">=24.21.0",
+    "dsh": "0.2.1-rc.3"
+  },
+  "dependencies": {},
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ],
+      "platform": "web"
+    }
+  },
+  "aiBuddy": {
+    "bridgeVersion": "1.3.0",
+    "dataSchemaVersion": 1,
+    "capabilities": [
+      "social.context.read",
+      "activity.lease",
+      "activity.check",
+      "activity.finish",
+      "models.request",
+      "experience.append",
+      "proactive.offer",
+      "connections.request",
+      "ui.bubble",
+      "ui.registerPage",
+      "lifecycle.register"
+    ],
+    "socialContract": {
+      "hash": "bdf864c287afdbf0e289e9414c29e624660f6e1dc6befaaef8c5079a66280a3b",
+      "status": "B_RUNTIME_CONTRACT_WITH_EXPLICIT_CAPABILITY_NEGOTIATION",
+      "runtimeVerified": false
+    },
+    "features": [
+      "bilibili-companion-v1-candidate"
+    ]
+  }
+}

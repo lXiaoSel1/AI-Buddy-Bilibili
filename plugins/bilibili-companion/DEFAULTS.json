@@ -1,0 +1,19 @@
+{
+  "autonomousEnabled": false,
+  "maxConcurrent": 1,
+  "dailyWatchLimit": 5,
+  "dailyCommentLimit": 3,
+  "commentMode": "off",
+  "commentConsent": false,
+  "commentReview": "direct",
+  "shareMode": "selected",
+  "resumeMode": "idle",
+  "connectionRef": null,
+  "modelConnectionRef": null,
+  "startMinute": 0,
+  "endMinute": 1440,
+  "defaultCharacterId": null,
+  "visualAutoApproved": false,
+  "sampleSeconds": 0.5,
+  "windowSeconds": 6
+}

@@ -1,0 +1,1011 @@
+{
+  "schemaVersion": 1,
+  "kind": "deterministic-public-source-export",
+  "plugin": "bilibili-companion",
+  "version": "2.0.11",
+  "inventoryHash": "3e4197b202c41fa8743c02faabe967aede919e21bd4b27ad66466a78a39f5f23",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 88,
+      "sha256": "ac851dffec465235553dfc33a3f283158affee24185f998b5cdd5930436457ba"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 199,
+      "sha256": "797e7e90c1bde8c8169e920e16713fc5044b265d377e7c21dd5ac8661e11ad61"
+    },
+    {
+      "path": ".nvmrc",
+      "bytes": 9,
+      "sha256": "04d43a993a37e6543c8b1cc37d498fa4a10250034ab922207b1a6a1e41e216da"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 7213,
+      "sha256": "f2919b50ec6e49b5a4c46b24d36b93c7e7c3e7cebea78dda0cfe4cd4591a458d"
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 13912,
+      "sha256": "e6678c4b6c1d0aacc5f99e6c1feac9d2a8ed348f45c82183fc5a6bf1b2482005"
+    },
+    {
+      "path": "PUBLIC-REPOSITORY.json",
+      "bytes": 323,
+      "sha256": "81d9c3177e7938cb99009ead4fc9ae46e6f3ca99f4ec31d24a8a23fbcfc01a42"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6754,
+      "sha256": "613bc4b4316d58bc748708ef2061f08889a99b23e08d0d1625123a569384d78c"
+    },
+    {
+      "path": "TEST-SCOPE.json",
+      "bytes": 5682,
+      "sha256": "13821c81b55bb5e8e3a682db291b6cda5020640ff8e5b891739fa1330cf30275"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "bytes": 1828,
+      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 1596,
+      "sha256": "b861022a8abd5e3b0f6f2c19cd3064865f29f19832d48970683af43736835f28"
+    },
+    {
+      "path": "contracts/README.md",
+      "bytes": 681,
+      "sha256": "c0fc139e9b901d376f7f4cacf7b6c323a0e13e99f595aa2005d1cad7304cd418"
+    },
+    {
+      "path": "contracts/proposal.json",
+      "bytes": 3417,
+      "sha256": "f8c4b4572d1cba8e91b1a43b8cd6a0aba40df12136715e27254e513816f6743d"
+    },
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "bytes": 2876,
+      "sha256": "529c066ff65f89a1b23267dd7f7942b45bacc6ac596d4f1f35d6f7a9ab74e627"
+    },
+    {
+      "path": "docs/VALIDATION.md",
+      "bytes": 1574,
+      "sha256": "2e0212e86f64d9847cb0fbfb4a90d5c5dde3681f2f1cf72586ddca0199cab5f1"
+    },
+    {
+      "path": "licenses/upstream/LICENSE.md",
+      "bytes": 4621,
+      "sha256": "a3780e54ad0f2a1dec80738626e4023402d7ef2c60fccce14cc14c8bd41475a0"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 15098,
+      "sha256": "d3857c3fcca22abb7a5c5bee2d54204445c3a4ee3af06442a00a6e0815e637e8"
+    },
+    {
+      "path": "package.json",
+      "bytes": 492,
+      "sha256": "4e622716a542c640379ee54152ded4fd65e55ae3122915ad9fb48a2494026c0e"
+    },
+    {
+      "path": "plugins/bilibili-companion/CHANGELOG.md",
+      "bytes": 7213,
+      "sha256": "f2919b50ec6e49b5a4c46b24d36b93c7e7c3e7cebea78dda0cfe4cd4591a458d"
+    },
+    {
+      "path": "plugins/bilibili-companion/COMPATIBILITY.md",
+      "bytes": 3441,
+      "sha256": "d97b5523b24a165ccb863c48fa770eb0d20713d1b6ac9b4407472d4bd34b13ce"
+    },
+    {
+      "path": "plugins/bilibili-companion/DATA-SCHEMA.json",
+      "bytes": 2954,
+      "sha256": "c60bd22108ffe29a26d19046cc7637acc0db6c4feed9d0cd9db78a57ce07f20f"
+    },
+    {
+      "path": "plugins/bilibili-companion/DEFAULTS.json",
+      "bytes": 458,
+      "sha256": "4d2b1c769c90d57e3b7a73de2eb6fc5dc7ab1b19e14cba4b2a93d63583de7318"
+    },
+    {
+      "path": "plugins/bilibili-companion/LICENSE.md",
+      "bytes": 13912,
+      "sha256": "e6678c4b6c1d0aacc5f99e6c1feac9d2a8ed348f45c82183fc5a6bf1b2482005"
+    },
+    {
+      "path": "plugins/bilibili-companion/README.md",
+      "bytes": 6754,
+      "sha256": "613bc4b4316d58bc748708ef2061f08889a99b23e08d0d1625123a569384d78c"
+    },
+    {
+      "path": "plugins/bilibili-companion/SETTINGS.schema.json",
+      "bytes": 2089,
+      "sha256": "e1720351c73e1f443333555df4250e57bc569f771288f7ed3c0a3d871a5d84d6"
+    },
+    {
+      "path": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md",
+      "bytes": 1828,
+      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
+    },
+    {
+      "path": "plugins/bilibili-companion/cordis.patch.yml",
+      "bytes": 91,
+      "sha256": "196aa2a7e58c18ec021067cdfbfe281e4073e7e6e87cedea23d0697423724379"
+    },
+    {
+      "path": "plugins/bilibili-companion/package.json",
+      "bytes": 1740,
+      "sha256": "0caa8b6e643b409feca9d407e06e4d39a8a5c3b2821cfb970ce9363d789946aa"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/index.mjs",
+      "bytes": 91428,
+      "sha256": "d322381b00483cc103d4dbdb8118a5f2f25960f2601702dc6428c13bc9e2ed20"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/reading.mjs",
+      "bytes": 18984,
+      "sha256": "146f8c0ff591e38be9bd041184683182ec85d0eb2d6c1beafd056c9804b585e8"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/selection.mjs",
+      "bytes": 1387,
+      "sha256": "016d24945ed25e5a9a61ba4ba77cdc138b27855adfe919cc1e654445fe6ef764"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/watch-state.mjs",
+      "bytes": 2568,
+      "sha256": "cf4e9a98651540cdf0465e3ab7c19c023f83ba0cf7a77b30509ea79e43b87638"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/defaults.mjs",
+      "bytes": 679,
+      "sha256": "68dda37f7761839657ad6993e6abf054ebe6707ff0fba3a0c162b307e33d781d"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/full-reading.mjs",
+      "bytes": 11938,
+      "sha256": "02768a3898831d569d6176de018fd11827db2563ae4cf8eb99094d389e9323d9"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/http-platform.mjs",
+      "bytes": 11780,
+      "sha256": "0a0d73c0dcb0dc57af00bcd79e09628173169ce8ca045bfa8a6150b7be3bc343"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/index.mjs",
+      "bytes": 554,
+      "sha256": "7bbfc20a0a0ad1f17e63c53842ae55fa66060d3892615a6ed6af47115da40c28"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/plan-content.mjs",
+      "bytes": 1144,
+      "sha256": "342ae88aab88ecdfe81c2d5968585c6f120089f9b925b8f7994a355a2f66b54c"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/platform.mjs",
+      "bytes": 5973,
+      "sha256": "dd81b2ef98e1b54472c1bbdd7c2725c28b88ab21c737c2c2927b44178f59d8af"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/prompts.mjs",
+      "bytes": 3538,
+      "sha256": "d23661f77de0bf396372d3dbd5e6179153bd9f67d67e5ac3ce1b46cd6b815488"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/scheduling.mjs",
+      "bytes": 1801,
+      "sha256": "cbe49ee3a7df1678fe7516564df94ed34d2a9afa8ecbe937b1ed19e9cd293765"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/service.mjs",
+      "bytes": 93934,
+      "sha256": "372e2e95a30f5b53921bbd08f5c15ee18f849932558597e87e5a6c4cdd5da672"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/visual-reading.mjs",
+      "bytes": 9763,
+      "sha256": "742c20b12d6e06bb55a20700b4cac7a69574155fa8ceda42b867c0ceb35c7dfd"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/account-refresh-r11.test.mjs",
+      "bytes": 6337,
+      "sha256": "66975640ada95ff8ea3d46ccfd2861093cb1dab2728b8139749ef37704c41ccb"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/async-reading-status.test.mjs",
+      "bytes": 3812,
+      "sha256": "798d9be4b199d73ccabe4aabec923907fe2aaf5d774aeff2c033e405610a45d2"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/audit-owner-close.test.mjs",
+      "bytes": 5327,
+      "sha256": "60c2c3ebd326e16f9e37f82c7ccfcf7d205064f91c4cdc6eedf7c171beb58187"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/bug-regressions.test.mjs",
+      "bytes": 19713,
+      "sha256": "58676d7516f355fbec72075e2da4bacfc2f18144ea3d85b24ee4eb57d489b4d4"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/embedded-page.test.mjs",
+      "bytes": 7447,
+      "sha256": "e9ddf33aace5d9918fc7fbb71be2a42e13c4d22a67bb6d17473c44fb5f065e90"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/synthetic-video-material.json",
+      "bytes": 235141,
+      "sha256": "638b205352d07141ee1da4121db21b2913db751ace8483440d42e8ea8498a27c"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/full-reading-page.test.mjs",
+      "bytes": 9118,
+      "sha256": "ab4861f616db6c356f6559f4dd32d1cfae0b4f45486215ea7ef3d26e52db9f57"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/full-reading-runner.test.mjs",
+      "bytes": 7253,
+      "sha256": "21d4aa4d14842329ee59d0b6730eaf5d579917798a7444cc131fa8c3b6302260"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/http-platform.test.mjs",
+      "bytes": 10087,
+      "sha256": "686f6c2cce093e19a0b994e13144caf9e255e4a76ed87f9c902bc48e9c21b16e"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/inline-confirmation.test.mjs",
+      "bytes": 8964,
+      "sha256": "7c213222126c34e7d39ab73c5acf7704c7b62ad57b635f60888c0c6f855ac968"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-202.test.mjs",
+      "bytes": 10887,
+      "sha256": "20d7c154c48affcdfa406859c52ec5faf8b33978161fda0d3af803e4b09e0297"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-login-r11.test.mjs",
+      "bytes": 1427,
+      "sha256": "15967d611ac86080f54f112d8fe00afee9cf4f92b50bf2b2fc7cf0eea43a27bb"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-plan-r11.test.mjs",
+      "bytes": 3834,
+      "sha256": "03eda8fff7d50dc7ca5720881c01c74dc2fc665f2bea36a3fb532de8247d98d3"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/plan-target-r11.test.mjs",
+      "bytes": 15375,
+      "sha256": "4738b0906572ee61ce4a5866b0507a4550e6bfe9d943d419c6926dbca5d7998a"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/plans-settings-202.test.mjs",
+      "bytes": 10507,
+      "sha256": "27a63738b95e87f3b3ee74d5be360fc9db3188b5e6fd9cb96c808c82292ba111"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/prompt-budget.test.mjs",
+      "bytes": 2748,
+      "sha256": "c0962f838ca496d83c8a720fbaedf3bf0084f3e5ec7d3bbc7089d761b1f3031d"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-consistency-r2.test.mjs",
+      "bytes": 11264,
+      "sha256": "b1524449b41b527c25022e0d5f571310b7639dba85c9ab65f40bb2e7a111da96"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-page.test.mjs",
+      "bytes": 8061,
+      "sha256": "737a1c0fca4ff3704bf80376efceabdfaadb6050e33a5c2ea5971702d274d7c0"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-recovery-page.test.mjs",
+      "bytes": 4539,
+      "sha256": "a73bde985cfc8b010d138482507a20a8753e8a1cc66362afe47ef19ee6139fc5"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-resume-service.test.mjs",
+      "bytes": 29103,
+      "sha256": "dacd6d376c01c586001bdf44680e0be02f3fd20e1f6b96305c3f0154ab746db2"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/receipt-recovery.test.mjs",
+      "bytes": 5465,
+      "sha256": "e3d40af345389417172677658fadc979517633210f5ebc36ea39785f5c8b5bc3"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/selection-policy.test.mjs",
+      "bytes": 2680,
+      "sha256": "0b772953c83f4f825076666e70f9e411fe3589f47a7ca4e278ab53b05175578c"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/service.test.mjs",
+      "bytes": 38163,
+      "sha256": "86d84f9226c1444df7bb246bac23b739059443f3aac04fc54e313b01c41aa409"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-legacy-package-compat.test.mjs",
+      "bytes": 9092,
+      "sha256": "03c6e72eb5d1ecfab8c6b3147fabcac65bbd53e91253f190174529e5c3ad9905"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-part-duration.test.mjs",
+      "bytes": 786,
+      "sha256": "7c5ff305de84db900f79a5cac3605859cc6fd882dfde402118d75d33cfff67f7"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-reading.test.mjs",
+      "bytes": 8334,
+      "sha256": "79c517a7383d0664d9f3341ee28a0e3b1ce2b4f83c171393cbcb9ef260ebba31"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-service.test.mjs",
+      "bytes": 9759,
+      "sha256": "11b84ea254f02e725ef4b2a37f3a32cd900274e914098565f756c68e4b8b5f13"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/watch-feedback.test.mjs",
+      "bytes": 8827,
+      "sha256": "22add069e04890dd0485af7a6db87cd29b0b9c2e3b74c0cc55f656c33831bf47"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/watch-state.test.mjs",
+      "bytes": 1726,
+      "sha256": "a7f3a6723f1fe735a4355f8c3d2cf7b384673ef7d872af6b7374bdfa34010452"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "bytes": 7117,
+      "sha256": "84a82e83afc6611779864e95fc5246251e9d2f05fcf11cf0d8fae02277aff7a1"
+    },
+    {
+      "path": "scripts/check-reproducible.mjs",
+      "bytes": 1502,
+      "sha256": "6f51d803737f6dc612b86212c5f9e64479b44b58f4e92eee9fd5c83b3b9f295a"
+    },
+    {
+      "path": "scripts/lib/public-repository.mjs",
+      "bytes": 1580,
+      "sha256": "da06f1e93f25af13dfb3638931db2f05bd613c6a01887b98aea14b2166bdc2b1"
+    },
+    {
+      "path": "scripts/lib/source-evidence.mjs",
+      "bytes": 4378,
+      "sha256": "1e4e3de78247493ab4ca1d55836f04a6f2528d877d5d2aa83899fd9c2cffd1b5"
+    },
+    {
+      "path": "scripts/lib/tar-reader.mjs",
+      "bytes": 1538,
+      "sha256": "ab7fe65b8739fe1dcc1085d6041dd5214e1ca784910efaa26fcddce6c3ab54fc"
+    },
+    {
+      "path": "scripts/owned-tests.mjs",
+      "bytes": 20288,
+      "sha256": "fc9bd2ef529d442691c55bc77373716c86687dd049c5456cba14c67c37bf336a"
+    },
+    {
+      "path": "scripts/test.mjs",
+      "bytes": 2876,
+      "sha256": "43a20e4a470d25b5e5623f8a26e1c276c46500114d7997885b54b26c18f31a64"
+    },
+    {
+      "path": "scripts/verify-artifacts.mjs",
+      "bytes": 4091,
+      "sha256": "d14d0bfb1db70e0335a8d74570e7a626d4e5a129b2baa79965120d963730ede0"
+    },
+    {
+      "path": "shared/account-services.mjs",
+      "bytes": 4108,
+      "sha256": "b24404ab0c21c140eb8af06a67a6fc492da785791e2543292d7a7a30b447a874"
+    },
+    {
+      "path": "shared/contract.mjs",
+      "bytes": 3692,
+      "sha256": "8ffd4c5b1aa4e44e8fc2c0958d4643e2796b7f92051f169026858f1bb9b6dd30"
+    },
+    {
+      "path": "shared/errors.mjs",
+      "bytes": 660,
+      "sha256": "2374f25defa1b3f941a5500cdde0be94f43c808c710243845c63e5601a27ca4e"
+    },
+    {
+      "path": "shared/native.mjs",
+      "bytes": 7090,
+      "sha256": "418244cb7a69f017d57c9410c7d6462b749c9fb8d1cb2bbc47631bd14c408817"
+    },
+    {
+      "path": "shared/runtime-owner.mjs",
+      "bytes": 2490,
+      "sha256": "9cbd1ceb980aca9dff91d095af571bc9408eb931560f2f2786ae02c143747a5b"
+    },
+    {
+      "path": "shared/store.mjs",
+      "bytes": 5084,
+      "sha256": "1e303afac894a9d9fbb15fb1b959e1374a36b157dc551725c96c5923ba4f37b5"
+    },
+    {
+      "path": "shared/version.mjs",
+      "bytes": 33,
+      "sha256": "cd6234158c072d193aebdf6bd5a0302a4966f6dffe8a5e24b418925c0606e427"
+    },
+    {
+      "path": "test/account-services.test.mjs",
+      "bytes": 2801,
+      "sha256": "e0e4c88b0face95394b71cd2f55ad3ba95c7db15bae1d35340cbc4da38b2defc"
+    },
+    {
+      "path": "test/audit-boundaries.test.mjs",
+      "bytes": 4152,
+      "sha256": "211ae9d6a48b928f31c1ecfe85d5f3405dfb4c5409155efefec05b7098b68b90"
+    },
+    {
+      "path": "test/evidence-integrity.test.mjs",
+      "bytes": 3192,
+      "sha256": "31e2ef7f119f9c16abb643628bf6cd26f8b07037e0b07c96766de94cbbdfaf68"
+    },
+    {
+      "path": "test/native-contract.test.mjs",
+      "bytes": 5651,
+      "sha256": "0dfd9a959412cd3b7439cf3f930c51f41b73b5b51d4c9b74970db4426dbf900b"
+    },
+    {
+      "path": "test/no-account-reads.test.mjs",
+      "bytes": 5576,
+      "sha256": "7398d3a0f2f6fd6fa0eae681e0993c9ff48e0a3692c23fa3b596f54a15cbf67e"
+    },
+    {
+      "path": "test/page-harness.mjs",
+      "bytes": 5549,
+      "sha256": "644266634fbc6d8acbf1828d17c61d419f8e3364a9b0b6be42f95887e35499f1"
+    },
+    {
+      "path": "test/release-200-store-roundtrip.test.mjs",
+      "bytes": 1258,
+      "sha256": "e7e7cc1f796973845e93024d3bd3198b2f6320f19bcdf429178a3115a3d72471"
+    },
+    {
+      "path": "test/review-native-lifecycle.test.mjs",
+      "bytes": 3461,
+      "sha256": "dee82680a952f97471afff243f54e85d49c6b0f64b58ea019d2e9635a864017c"
+    },
+    {
+      "path": "test/review-platform-receipts.test.mjs",
+      "bytes": 915,
+      "sha256": "ddc7e5b415a468663190510980abe56cb4601976ac449c80eae2c68349aa625c"
+    },
+    {
+      "path": "test/review-store-boundaries.test.mjs",
+      "bytes": 1634,
+      "sha256": "3af2950959b914a62a948ec1c3177d6243ee51d26f50f1cba1d0f73592a2d40f"
+    },
+    {
+      "path": "test/runtime-owner.test.mjs",
+      "bytes": 1112,
+      "sha256": "16bc9cd583df15de2d13c8fb73a5e2cee481bc0fc4b34bb5ebd7efdcc49b330c"
+    },
+    {
+      "path": "test/store.test.mjs",
+      "bytes": 3900,
+      "sha256": "497ffae91958a62ab5045f2cc66f277252f9b6818b7441ddd71006265b895047"
+    }
+  ],
+  "origins": [
+    {
+      "path": ".gitattributes",
+      "kind": "copied",
+      "source": ".gitattributes"
+    },
+    {
+      "path": ".gitignore",
+      "kind": "copied",
+      "source": ".gitignore"
+    },
+    {
+      "path": ".nvmrc",
+      "kind": "copied",
+      "source": ".nvmrc"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/CHANGELOG.md"
+    },
+    {
+      "path": "LICENSE.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/LICENSE.md"
+    },
+    {
+      "path": "PUBLIC-REPOSITORY.json",
+      "kind": "generated",
+      "reason": "Public build selection and fixed development toolchain; no machine paths."
+    },
+    {
+      "path": "README.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/README.md"
+    },
+    {
+      "path": "TEST-SCOPE.json",
+      "kind": "generated",
+      "reason": "Explicit test inclusion/projection/exclusion record; no test result is asserted."
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "kind": "copied",
+      "source": "THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "path": "contracts/README.md",
+      "kind": "generated",
+      "reason": "Current bounded contract explanation; runtime JSON and shared validation remain unchanged."
+    },
+    {
+      "path": "contracts/proposal.json",
+      "kind": "copied",
+      "source": "contracts/proposal.json"
+    },
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "kind": "copied",
+      "source": "docs/DEVELOPMENT.md"
+    },
+    {
+      "path": "docs/VALIDATION.md",
+      "kind": "copied",
+      "source": "docs/VALIDATION.md"
+    },
+    {
+      "path": "licenses/upstream/LICENSE.md",
+      "kind": "copied",
+      "source": "licenses/upstream/LICENSE.md"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "generated",
+      "reason": "Only root package identity/version/engines changed; all locked third-party versions, URLs and integrity bytes remain."
+    },
+    {
+      "path": "package.json",
+      "kind": "generated",
+      "reason": "Public single-plugin source identity/scripts and pinned Node/npm; esbuild dependency unchanged."
+    },
+    {
+      "path": "plugins/bilibili-companion/CHANGELOG.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/CHANGELOG.md"
+    },
+    {
+      "path": "plugins/bilibili-companion/COMPATIBILITY.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/COMPATIBILITY.md"
+    },
+    {
+      "path": "plugins/bilibili-companion/DATA-SCHEMA.json",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/DATA-SCHEMA.json"
+    },
+    {
+      "path": "plugins/bilibili-companion/DEFAULTS.json",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/DEFAULTS.json"
+    },
+    {
+      "path": "plugins/bilibili-companion/LICENSE.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/LICENSE.md"
+    },
+    {
+      "path": "plugins/bilibili-companion/README.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/README.md"
+    },
+    {
+      "path": "plugins/bilibili-companion/SETTINGS.schema.json",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/SETTINGS.schema.json"
+    },
+    {
+      "path": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md"
+    },
+    {
+      "path": "plugins/bilibili-companion/cordis.patch.yml",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/cordis.patch.yml"
+    },
+    {
+      "path": "plugins/bilibili-companion/package.json",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/package.json"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/index.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/client/index.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/reading.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/client/reading.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/selection.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/client/selection.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/client/watch-state.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/client/watch-state.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/defaults.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/defaults.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/full-reading.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/full-reading.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/http-platform.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/http-platform.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/index.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/index.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/plan-content.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/plan-content.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/platform.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/platform.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/prompts.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/prompts.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/scheduling.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/scheduling.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/service.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/service.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/visual-reading.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/src/visual-reading.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/account-refresh-r11.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/account-refresh-r11.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/async-reading-status.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/async-reading-status.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/audit-owner-close.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/audit-owner-close.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/bug-regressions.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/bug-regressions.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/embedded-page.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/embedded-page.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/synthetic-video-material.json",
+      "kind": "generated",
+      "reason": "Original 1504-cue fixture of comparable scale; includes Chinese, quoting, spaces and newlines, no external text."
+    },
+    {
+      "path": "plugins/bilibili-companion/test/full-reading-page.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/full-reading-page.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/full-reading-runner.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/full-reading-runner.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/http-platform.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/http-platform.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/inline-confirmation.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/inline-confirmation.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-202.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/page-202.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-login-r11.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/page-login-r11.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/page-plan-r11.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/page-plan-r11.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/plan-target-r11.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/plan-target-r11.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/plans-settings-202.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/plans-settings-202.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/prompt-budget.test.mjs",
+      "kind": "projected",
+      "source": "plugins/bilibili-companion/test/prompt-budget.test.mjs",
+      "reason": "Keep original 1504-cue budget, identity/timing/Unicode and schema assertions; replace unlicensed third-party full subtitles with explicitly original synthetic material."
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-consistency-r2.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/reading-consistency-r2.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-page.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/reading-page.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-recovery-page.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/reading-recovery-page.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/reading-resume-service.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/reading-resume-service.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/receipt-recovery.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/receipt-recovery.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/selection-policy.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/selection-policy.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/service.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/service.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-legacy-package-compat.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/visual-legacy-package-compat.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-part-duration.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/visual-part-duration.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-reading.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/visual-reading.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/visual-service.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/visual-service.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/watch-feedback.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/watch-feedback.test.mjs"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/watch-state.test.mjs",
+      "kind": "copied",
+      "source": "plugins/bilibili-companion/test/watch-state.test.mjs"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "kind": "copied",
+      "source": "scripts/build.mjs"
+    },
+    {
+      "path": "scripts/check-reproducible.mjs",
+      "kind": "copied",
+      "source": "scripts/check-reproducible.mjs"
+    },
+    {
+      "path": "scripts/lib/public-repository.mjs",
+      "kind": "copied",
+      "source": "scripts/lib/public-repository.mjs"
+    },
+    {
+      "path": "scripts/lib/source-evidence.mjs",
+      "kind": "copied",
+      "source": "scripts/lib/source-evidence.mjs"
+    },
+    {
+      "path": "scripts/lib/tar-reader.mjs",
+      "kind": "copied",
+      "source": "scripts/lib/tar-reader.mjs"
+    },
+    {
+      "path": "scripts/owned-tests.mjs",
+      "kind": "copied",
+      "source": "scripts/owned-tests.mjs"
+    },
+    {
+      "path": "scripts/test.mjs",
+      "kind": "copied",
+      "source": "scripts/test.mjs"
+    },
+    {
+      "path": "scripts/verify-artifacts.mjs",
+      "kind": "copied",
+      "source": "scripts/verify-artifacts.mjs"
+    },
+    {
+      "path": "shared/account-services.mjs",
+      "kind": "copied",
+      "source": "shared/account-services.mjs"
+    },
+    {
+      "path": "shared/contract.mjs",
+      "kind": "copied",
+      "source": "shared/contract.mjs"
+    },
+    {
+      "path": "shared/errors.mjs",
+      "kind": "copied",
+      "source": "shared/errors.mjs"
+    },
+    {
+      "path": "shared/native.mjs",
+      "kind": "copied",
+      "source": "shared/native.mjs"
+    },
+    {
+      "path": "shared/runtime-owner.mjs",
+      "kind": "copied",
+      "source": "shared/runtime-owner.mjs"
+    },
+    {
+      "path": "shared/store.mjs",
+      "kind": "copied",
+      "source": "shared/store.mjs"
+    },
+    {
+      "path": "shared/version.mjs",
+      "kind": "copied",
+      "source": "shared/version.mjs"
+    },
+    {
+      "path": "test/account-services.test.mjs",
+      "kind": "copied",
+      "source": "test/account-services.test.mjs"
+    },
+    {
+      "path": "test/audit-boundaries.test.mjs",
+      "kind": "copied",
+      "source": "test/audit-boundaries.test.mjs"
+    },
+    {
+      "path": "test/evidence-integrity.test.mjs",
+      "kind": "copied",
+      "source": "test/evidence-integrity.test.mjs"
+    },
+    {
+      "path": "test/native-contract.test.mjs",
+      "kind": "copied",
+      "source": "test/native-contract.test.mjs"
+    },
+    {
+      "path": "test/no-account-reads.test.mjs",
+      "kind": "projected",
+      "source": "test/no-account-reads.test.mjs",
+      "reason": "Retain selected-plugin no-account authorization and shared account-store tests verbatim; exclude sibling service case/import."
+    },
+    {
+      "path": "test/page-harness.mjs",
+      "kind": "copied",
+      "source": "test/page-harness.mjs"
+    },
+    {
+      "path": "test/release-200-store-roundtrip.test.mjs",
+      "kind": "copied",
+      "source": "test/release-200-store-roundtrip.test.mjs"
+    },
+    {
+      "path": "test/review-native-lifecycle.test.mjs",
+      "kind": "copied",
+      "source": "test/review-native-lifecycle.test.mjs"
+    },
+    {
+      "path": "test/review-platform-receipts.test.mjs",
+      "kind": "projected",
+      "source": "test/review-platform-receipts.test.mjs",
+      "reason": "Retain selected-plugin platform/experience receipt assertions verbatim; exclude sibling service case/import."
+    },
+    {
+      "path": "test/review-store-boundaries.test.mjs",
+      "kind": "copied",
+      "source": "test/review-store-boundaries.test.mjs"
+    },
+    {
+      "path": "test/runtime-owner.test.mjs",
+      "kind": "copied",
+      "source": "test/runtime-owner.test.mjs"
+    },
+    {
+      "path": "test/store.test.mjs",
+      "kind": "copied",
+      "source": "test/store.test.mjs"
+    }
+  ],
+  "inventoryExcludes": [
+    "PUBLIC-SOURCE.json"
+  ],
+  "excludedCategories": [
+    "runtime",
+    "assets",
+    "users",
+    "credentials",
+    "logs",
+    "receipts",
+    "evidence",
+    "test-data",
+    "private host",
+    "Work source",
+    "sibling plugin",
+    "Git history",
+    "node_modules"
+  ],
+  "excludedHistoricalDocuments": [
+    "contracts/A-ACK.json",
+    "contracts/CONTRACT-PROPOSAL.md",
+    "scripts/record-baseline.mjs",
+    "scripts/prepare-packages.mjs",
+    "scripts/probe-public-bilibili.mjs",
+    "scripts/delivery-report.mjs",
+    "scripts/finalize-delivery.mjs"
+  ]
+}

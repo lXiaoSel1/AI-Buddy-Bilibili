@@ -1,0 +1,10 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {resolve,dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),first=JSON.parse(await readFile(join(root,'ARTIFACTS.json'),'utf8'));
+const result=spawnSync(process.execPath,[join(root,'scripts/build.mjs')],{cwd:root,encoding:'utf8',windowsHide:true});
+if(result.status!==0)throw Error('Second build failed: '+result.stderr);
+const second=JSON.parse(await readFile(join(root,'ARTIFACTS.json'),'utf8'));
+const comparisons=first.packages.map(before=>{const after=second.packages.find(row=>row.pluginId===before.pluginId);if(!after||before.sourceHash!==after.sourceHash||before.sourceSnapshotHash!==after.sourceSnapshotHash||before.sha256!==after.sha256||before.bytes!==after.bytes)throw Error('Reproducibility mismatch '+before.pluginId);return {pluginId:before.pluginId,firstPath:before.path,secondPath:after.path,sourceHash:after.sourceHash,sourceSnapshotHash:after.sourceSnapshotHash,sha256:after.sha256,bytes:after.bytes,byteIdentical:true};});
+const receipt={schemaVersion:1,at:new Date().toISOString(),status:'PASS',classification:'two-real-isolated-builds-same-inputs-byte-identical',comparisons};await mkdir(join(root,'receipts'),{recursive:true});await writeFile(join(root,'receipts/REPRODUCIBLE-BUILD.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt,null,2));

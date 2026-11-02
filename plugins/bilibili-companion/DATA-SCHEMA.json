@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "minimumWriter": "0.1.0-dev.2",
+  "pluginId": "@ai-buddy/bilibili-companion",
+  "tables": {
+    "bili_activities": "private per-character evidence and workflow state; account/day/model connection/control epoch pinned at admission",
+    "bili_reservations": "shared account/day watching and comment reservations; reserved/committed/unknown/released",
+    "bili_schedules": "explicit participant/count/day/window authorization; paused activity resume is atomically claimed",
+    "bili_materials": "validated complete material cache, CID-bound and 24h maximum; partial materials are refreshed",
+    "bili_outbox": "persistent idempotent experience and proactive proposals; all operations drain before close",
+    "bili_comments": "single send identity with public scope, comment model receipt and sent/failed/unknown state; with commentReview=preview also draft/approved (user posts or discards) and discarded"
+  },
+  "migration": "schema1 retained; shared store raises minimumWriter monotonically; incompatible foreign databases rejected; 2.0.2 keeps defaultCharacterId and after-chat sharing in a_plugin_kv settings-v2 beside the unchanged 2.0.1 settings row",
+  "uninstall": "retain private database and host-recorded experiences by default",
+  "rollback": "never roll back host wallet, posted comments, or actual experiences; dev.1 writer must not open upgraded data",
+  "additive206": {
+    "settings-v206": "sampleSeconds/windowSeconds kept outside legacy settings",
+    "reading-full-v1:*": "host-plan-linked source-preserved batches and uncertain-submission checkpoint; legacy reading-v21 retained",
+    "visual-activity-v21:*": "readingMode full-v1 opts new activities into the separate protocol; old tasks never auto-convert",
+    "full-materials-v206:*": "original acquired subtitle material retained once per activity; activity stores its reference",
+    "full-result-v206:*": "original host-backed batch result retained once; runner checkpoint and UI index store references"
+  },
+  "additive208": {
+    "leaseAttempts": "fresh per-perform activity lease identity; stable reading, quota, plan and model batch identities unchanged; ended host leases remain ended",
+    "reading-full-v1:*": "host confirmation and state facts synchronize while preserving local results, pending and invalidReceipts; management reading.get remains read-only",
+    "full-activity-v206:*": "zeroCallRecoveryFailures is an additive array retaining original failed activity snapshots when an explicitly requested zero-call recovery or cancellation supersedes them",
+    "zeroCallRecovery": "no startup migration or replay; explicit reading.continue requires same account-scoped host readingId/planHash, confirmed reading/paused phase, explicit empty calls, explicit zero progress and coverage, no receipt/review/unknown, current original identity/model/day/window/quota and post-await control/CAS admission"
+  }
+}

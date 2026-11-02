@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "classification": "independent-plugin-domain-client-shared-fixture-tests",
+  "plugin": "bilibili-companion",
+  "retainedTestFiles": [
+    "plugins/bilibili-companion/test/account-refresh-r11.test.mjs",
+    "plugins/bilibili-companion/test/async-reading-status.test.mjs",
+    "plugins/bilibili-companion/test/audit-owner-close.test.mjs",
+    "plugins/bilibili-companion/test/bug-regressions.test.mjs",
+    "plugins/bilibili-companion/test/embedded-page.test.mjs",
+    "plugins/bilibili-companion/test/full-reading-page.test.mjs",
+    "plugins/bilibili-companion/test/full-reading-runner.test.mjs",
+    "plugins/bilibili-companion/test/http-platform.test.mjs",
+    "plugins/bilibili-companion/test/inline-confirmation.test.mjs",
+    "plugins/bilibili-companion/test/page-202.test.mjs",
+    "plugins/bilibili-companion/test/page-login-r11.test.mjs",
+    "plugins/bilibili-companion/test/page-plan-r11.test.mjs",
+    "plugins/bilibili-companion/test/plan-target-r11.test.mjs",
+    "plugins/bilibili-companion/test/plans-settings-202.test.mjs",
+    "plugins/bilibili-companion/test/prompt-budget.test.mjs",
+    "plugins/bilibili-companion/test/reading-consistency-r2.test.mjs",
+    "plugins/bilibili-companion/test/reading-page.test.mjs",
+    "plugins/bilibili-companion/test/reading-recovery-page.test.mjs",
+    "plugins/bilibili-companion/test/reading-resume-service.test.mjs",
+    "plugins/bilibili-companion/test/receipt-recovery.test.mjs",
+    "plugins/bilibili-companion/test/selection-policy.test.mjs",
+    "plugins/bilibili-companion/test/service.test.mjs",
+    "plugins/bilibili-companion/test/visual-legacy-package-compat.test.mjs",
+    "plugins/bilibili-companion/test/visual-part-duration.test.mjs",
+    "plugins/bilibili-companion/test/visual-reading.test.mjs",
+    "plugins/bilibili-companion/test/visual-service.test.mjs",
+    "plugins/bilibili-companion/test/watch-feedback.test.mjs",
+    "plugins/bilibili-companion/test/watch-state.test.mjs",
+    "test/account-services.test.mjs",
+    "test/audit-boundaries.test.mjs",
+    "test/evidence-integrity.test.mjs",
+    "test/native-contract.test.mjs",
+    "test/no-account-reads.test.mjs",
+    "test/release-200-store-roundtrip.test.mjs",
+    "test/review-native-lifecycle.test.mjs",
+    "test/review-platform-receipts.test.mjs",
+    "test/review-store-boundaries.test.mjs",
+    "test/runtime-owner.test.mjs",
+    "test/store.test.mjs"
+  ],
+  "transforms": [
+    {
+      "path": "test/no-account-reads.test.mjs",
+      "reason": "Retain selected-plugin no-account authorization and shared account-store tests verbatim; exclude sibling service case/import.",
+      "originalSha256": "84833d06080d48ad44c543de144212f92740912f9b604dc154d0a16fc62902a5"
+    },
+    {
+      "path": "test/review-platform-receipts.test.mjs",
+      "reason": "Retain selected-plugin platform/experience receipt assertions verbatim; exclude sibling service case/import.",
+      "originalSha256": "29a06c006649fa9aab8bec86200aa535028909218c50afaa89ca09d7ec268098"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/prompt-budget.test.mjs",
+      "reason": "Keep original 1504-cue budget, identity/timing/Unicode and schema assertions; replace unlicensed third-party full subtitles with explicitly original synthetic material.",
+      "originalSha256": "9fcfba8b6cf5e1228dbc2b2cd7e09ad24911ff5b028fbefcc0e33b24a2e60c95"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "plugins/bilibili-companion/test/full-reading-service.test.mjs",
+      "classification": "private-host-integration",
+      "reason": "Imports private core full-reading service/store implementation; retained in the full integration suite. Plugin full-reading runner, recovery, page and receipt tests remain."
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/real-video-material.json",
+      "classification": "unlicensed-third-party-full-subtitles",
+      "reason": "Full third-party subtitle track is not needed by the package and has no redistribution license. Synthetic 1504-cue projection retains scale and packing assertions."
+    },
+    {
+      "path": "plugins/qq-connect/**",
+      "classification": "sibling-plugin",
+      "reason": "Independent repository exports only its selected plugin. The sibling source/tests are published separately."
+    },
+    {
+      "path": "test/no-account-reads.test.mjs#sibling-service",
+      "classification": "sibling-plugin-case",
+      "reason": "Selected service and shared authorization assertions are retained by explicit source projection."
+    },
+    {
+      "path": "test/review-platform-receipts.test.mjs#sibling-service",
+      "classification": "sibling-plugin-case",
+      "reason": "Selected platform receipt assertions are retained by explicit source projection."
+    },
+    {
+      "path": "test/onebot-wire.test.mjs",
+      "classification": "sibling-plugin-transport",
+      "reason": "QQ-specific wire tests are retained in AI-Buddy-QQ."
+    }
+  ],
+  "optionalEvidence": [
+    {
+      "kind": "historical-package-compatibility",
+      "enabledBy": [
+        "AI_BUDDY_R11_OLD_BILI_PACKAGE",
+        "AI_BUDDY_V21_OLD_BILI_PACKAGE"
+      ],
+      "note": "Tests remain skipped unless their pinned historical archive is explicitly supplied; archives are not exported."
+    }
+  ],
+  "notAcceptedByTheseTests": [
+    "real platform login or account behavior",
+    "paid/real model semantics",
+    "real Bilibili comment publication",
+    "real QQ inbound-to-model-to-outbound roundtrip",
+    "host visual/multiscreen behavior",
+    "owner Work execution"
+  ]
+}
