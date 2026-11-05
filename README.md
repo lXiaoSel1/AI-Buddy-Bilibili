@@ -9,7 +9,7 @@
 
 **简体中文** · [English](#english)
 
-[AI 酱本体](https://github.com/lXiaoSel1/AI-Buddy) · **B站陪伴**（本仓库） · [QQ连接](https://github.com/lXiaoSel1/AI-Buddy-QQ)
+[AI 酱本体](https://github.com/lXiaoSel1/AI-Buddy) · **B站陪伴**（本仓库） · [QQ连接](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [一起玩牌](https://github.com/lXiaoSel1/AI-Buddy-Card-Games)
 
 **当前版本：2.0.11** · 需要 [AI 酱](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 或更新版本。这是 AI 酱的官方插件，在 AI 酱的 **扩展中心** 里安装，不用单独下载。
 
@@ -136,7 +136,7 @@ npm run repro
 
 ## English
 
-[AI Buddy app](https://github.com/lXiaoSel1/AI-Buddy) · **Bilibili Companion** (this repository) · [QQ Connect](https://github.com/lXiaoSel1/AI-Buddy-QQ)
+[AI Buddy app](https://github.com/lXiaoSel1/AI-Buddy) · **Bilibili Companion** (this repository) · [QQ Connect](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [Card Games](https://github.com/lXiaoSel1/AI-Buddy-Card-Games)
 
 **Version 2.0.11** · requires [AI Buddy](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 or later. It is an official AI Buddy plugin, installed from AI Buddy's **Extensions** center; there is nothing to download separately.
 
