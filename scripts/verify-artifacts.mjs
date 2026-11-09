@@ -1,3 +1,4 @@
+import {assertNewReleaseCompatibility} from './lib/plugin-release-compatibility.mjs';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {resolve,dirname,join,relative} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
@@ -10,6 +11,7 @@ const receipt=JSON.parse(await readFile(join(root,'ARTIFACTS.json'),'utf8')),sta
 for(const artifact of receipt.packages){
  const bytes=await readFile(artifact.path);if(bytes.length!==artifact.bytes||sha(bytes)!==artifact.sha256)throw Error('Artifact digest mismatch');
  const files=unpack(bytes),manifest=JSON.parse(files.get('package.json').toString()),inputs=JSON.parse(files.get('SOURCE-INPUTS.json').toString()),inventory=JSON.parse(files.get('BUILD-INVENTORY.json').toString());
+ assertNewReleaseCompatibility(JSON.parse(await readFile(join(root,'release-compatibility.json'),'utf8')),{sourceManifest:manifest});
  if(manifest.name!==artifact.pluginId||manifest.version!==artifact.version||inputs.sourceHash!==artifact.sourceHash||inputs.contractHash!==artifact.contractHash)throw Error('Manifest/source mismatch');
  if(manifest.aiBuddy.capabilities.includes('work.host'))throw Error('Social packages must not receive work.host');
  for(const row of inventory.files){const data=files.get(row.path);if(!data||data.length!==row.bytes||sha(data)!==row.sha256)throw Error('Packed member mismatch '+row.path);}

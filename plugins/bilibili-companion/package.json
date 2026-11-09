@@ -1,6 +1,6 @@
 {
   "name": "@ai-buddy/bilibili-companion",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "AI Buddy Bilibili companion — frozen plans, source frames, subtitles and durable receipts",
   "type": "module",
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=24.21.0",
-    "dsh": "0.2.1-rc.3"
+    "dsh": ">=0.2.1-rc.3"
   },
   "dependencies": {},
   "dsh": {

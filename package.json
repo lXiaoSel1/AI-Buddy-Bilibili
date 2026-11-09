@@ -1,13 +1,14 @@
 {
   "name": "ai-buddy-bilibili-companion-source",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node scripts/test.mjs",
     "build": "node scripts/build.mjs",
     "verify:artifacts": "node scripts/verify-artifacts.mjs",
-    "repro": "node scripts/check-reproducible.mjs"
+    "repro": "node scripts/check-reproducible.mjs",
+    "check:release-compatibility": "node scripts/check-release-compatibility.mjs --manifest=release-compatibility.json --source=plugins/bilibili-companion/package.json"
   },
   "devDependencies": {
     "esbuild": "0.28.2"
