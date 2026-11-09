@@ -1,4 +1,15 @@
+## 2.0.14 — 2026-11-08
+
+- 沿用已验收的本机 2.0.13：新观看按角色聊天连接固定阅读、汇总和感想，集中修复的执行失效、模型包装和页面导航处理一并公开。旧计划、未知回执、权限、合同与数据格式保留。本轮仅使用新版本及正式下载身份，不增加业务行为。
+- Publishes the accepted local 2.0.13 behavior: new viewings pin the character chat connection for reading, consolidation and reflection, including the batch lifecycle, response-wrapper and navigation fixes. Existing plans, unknown receipts, capabilities, contract and schema are preserved. This preparation changes only release identifiers and documentation.
+
 ## 2.0.11 — 2026-11-01
+
+## 2.0.13 — 本地角色模型修订 / Local character-model revision
+
+- 新观看按参与角色解析聊天连接；移除独立感想模型选择，阅读、汇总和感想使用本次计划固定连接。
+- 多角色预约及错峰按实际角色连接处理；旧计划、未知回执、评论授权和数据格式保留。
+- New readings follow the viewing character's chat connection and pin it through reading, consolidation and reflection. The separate model selector is removed. Existing plans and unknown receipts are preserved; permissions and data schema are unchanged.
 
 - Publish an independent, self-contained source repository and fixed development toolchain; update installation, permission, retention and verification boundaries.
 - Functional baseline remains 2.0.10. Bridge, capabilities, contract hash and data schema are unchanged. This patch does not claim new live platform or model acceptance.

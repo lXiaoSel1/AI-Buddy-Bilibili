@@ -8,8 +8,9 @@ import {preferOffPeak} from './scheduling.mjs';
 import {scheduleContent} from './plan-content.mjs';
 import {understandingPrompt,publicCommentPrompt} from './prompts.mjs';
 import {inspectRuntimeProcess,runtimeOwnerAlive} from '../../../shared/runtime-owner.mjs';
-import {runVisualReading,isVisualPause} from './visual-reading.mjs';
-import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadingRecord} from './full-reading.mjs';
+import {runVisualReading,isVisualPause,validVisualUnderstanding,retainVisualReceipt} from './visual-reading.mjs';
+import {parseModelResponse} from './model-response.mjs';
+import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadingRecord,recoverNotSentFullReading,parseFullReadingUnderstanding} from './full-reading.mjs';
 
 const parse=v=>v?JSON.parse(v):null;
 const terminal=new Set(['completed','partial','failed','cancelled']);
@@ -65,8 +66,11 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   localClock(now(),timeZone);
   assert(Number.isSafeInteger(cleanupTimeoutMs)&&cleanupTimeoutMs>=1&&cleanupTimeoutMs<=5000,'BILI_CLEANUP_BUDGET_INVALID');
   const store=openStore({databasePath,pluginId:PLUGIN_ID,schemaVersion:1,minimumWriter:'0.1.0-dev.2'});
-  const db=store.db,inflight=new Map(),operations=new Set(),liveBubbles=new Map(),confirmedPlans=new Set(),readingControls=new Map(),confirmingReadings=new Set();let closing=false,closePromise=null,managedCatalog=[];
+  const db=store.db,inflight=new Map(),operations=new Set(),liveBubbles=new Map(),confirmedPlans=new Set(),readingControls=new Map(),readingMutations=new Map();let closing=false,closePromise=null,managedCatalog=[];
   const controlEpoch=()=>store.get('controlEpoch',0);
+  const commentEpoch=()=>store.get('commentControlEpoch',0);
+  function authorizeComment(epoch,connectionRef){const current=settings();assertOpen();assert(current.commentMode==='managed'&&current.commentConsent,'BILI_COMMENTS_OFF','Comment authorization was revoked');assert(epoch===commentEpoch()&&connectionRef===current.connectionRef,'BILI_CONTROL_STALE','A newer comment authorization superseded this request');}
+
   const assertOpen=()=>assert(!closing,'BILI_CLOSED','The plugin is closing');
   const assertCurrent=epoch=>{if(epoch!==undefined)assert(epoch===controlEpoch(),'BILI_CONTROL_STALE','A newer user control superseded this request');};
   function revokeControl(accountId,reason){store.set('controlEpoch',controlEpoch()+1);interrupt(accountId,reason);}
@@ -87,13 +91,13 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   const row=id=>store.get('full-activity-v206:'+id,null)??store.get('visual-activity-v21:'+id,null)??parse(db.prepare('SELECT data FROM bili_activities WHERE id=?').get(id)?.data)??store.get('video-activity:'+id,null);
   const readingControl=id=>readingControls.get(id)??0;
   const checkpoint=id=>store.get('reading-full-v1:'+id,null);
-  const recoverableZeroCall=(a,state)=>a?.connectionRef===settings().connectionRef&&a.modelConnectionRef===settings().modelConnectionRef&&zeroCallHost(a,checkpoint(a.id),state);
+  const recoverableZeroCall=(a,state)=>a?.connectionRef===settings().connectionRef&&zeroCallHost(a,checkpoint(a.id),state);
   function retainZeroCallFailure(a,reason){const {zeroCallRecoveryFailures,...failure}=a;a.zeroCallRecoveryFailures=[...(zeroCallRecoveryFailures??[]),{...failure,recoveryReason:reason,recoveredAt:now()}];}
   function fullReadingView(a,state){
-    const {recoveredResults,...safeState}=state;state=safeState;
+    const {recoveredResults,notSentResults,...safeState}=state;state=safeState;
     const local=checkpoint(a.id),confirmationAccepted=state.confirmed===true&&a.pauseReason==='BILI_FULL_PLAN_CONFIRMATION_REQUIRED'&&['reading','completed'].includes(state.phase),phase=terminal.has(a.state)?a.state:a.state==='paused'&&!confirmationAccepted&&!(state.confirmed!==true&&state.phase==='awaiting-confirmation')?'paused':state.phase,needsReview=state.needsReview===true||a.needsReview===true||!!local?.pending;
     const currentReason=needsReview||['paused','failed','partial','cancelled','unknown'].includes(phase),pauseReason=['paused','cancelled'].includes(phase)&&!confirmationAccepted?a.pauseReason??null:null;
-    return {...state,activityId:a.id,activityRevision:a.statusRevision??0,readingRevision:state.revision??0,pauseReason,phase,modelReason:currentReason?a.lastFailureCode??state.modelReason??null:null,needsReview,recoverableZeroCall:recoverableZeroCall(a,state),results:Object.values(local?.results??{}).map(x=>x.understanding?x:store.get('full-result-v206:'+a.id+':'+x.stepId,null)).filter(x=>x?.understanding).map(x=>({stepId:x.stepId,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};
+    return {...state,activityId:a.id,activityRevision:a.statusRevision??0,readingRevision:state.revision??0,pauseReason,phase,modelReason:currentReason?a.lastFailureCode??state.modelReason??null:null,needsReview,recoverableZeroCall:recoverableZeroCall(a,state),results:Object.values(local?.results??{}).map(x=>x.understanding?x:readFullResult(a.id,x.stepId)).filter(x=>x?.understanding).map(x=>({stepId:x.stepId,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};
   }
   function activities(accountId=null,states=null,limit=null){
     const old=[],extra=["(key GLOB 'video-activity:*' OR key GLOB 'visual-activity-v21:*' OR key GLOB 'full-activity-v206:*')"],args=[];if(accountId!==null){old.push('account_id=?');extra.push("json_extract(value,'$.accountId')=?");args.push(accountId);}if(states){const marks=states.map(()=>'?').join(',');old.push('state IN ('+marks+')');extra.push("json_extract(value,'$.state') IN ("+marks+')');args.push(...states);}const end=' ORDER BY rowid DESC'+(limit?' LIMIT '+limit:'');
@@ -101,7 +105,17 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   }
   const activityRevisions=new Map();
   const save=a=>{a.statusRevision=Math.max(a.statusRevision??0,activityRevisions.get(a.id)??0)+1;activityRevisions.set(a.id,a.statusRevision);a.updatedAt=now();if(a.readingMode==='full-v1')store.set('full-activity-v206:'+a.id,a);else if(a.visual===true)store.set('visual-activity-v21:'+a.id,a);else if(a.videoPlan===true)store.set('video-activity:'+a.id,a);else db.prepare('INSERT INTO bili_activities(id,account_id,character_id,day,state,data) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET state=excluded.state,data=excluded.data').run(a.id,a.accountId,a.characterId,a.day,a.state,JSON.stringify(a));return a;};
-  function writeFullResult(activityId,value){const key='full-result-v206:'+activityId+':'+value.stepId,prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','An original batch receipt cannot be overwritten');if(!prior)store.set(key,value);return key;}
+  function readFullResult(activityId,stepId){const local=checkpoint(activityId),entry=local?.results?.[stepId]??local?.invalidReceipts?.[stepId];return entry?.understanding?entry:store.get(entry?.resultRef??'full-result-v206:'+activityId+':'+stepId,null);}
+  function writeFullResult(activityId,value,{priorInvalid}={}){let key='full-result-v206:'+activityId+':'+value.stepId;if(priorInvalid){const local=checkpoint(activityId),entry=local?.invalidReceipts?.[value.stepId],parsed=parseFullReadingUnderstanding(priorInvalid.result),ids=new Set(value.material?.items?.map(item=>item.id)??[]);assert(entry&&!local.results?.[value.stepId]&&entry.providerRequestId===value.providerRequestId&&JSON.stringify(readFullResult(activityId,value.stepId))===JSON.stringify(priorInvalid)&&priorInvalid.schemaInvalid===true&&priorInvalid.stepId===value.stepId&&priorInvalid.providerRequestId===value.providerRequestId&&validVisualUnderstanding(parsed,ids)&&parsed.completedMaterial===true&&JSON.stringify(parsed)===JSON.stringify(value.understanding)&&JSON.stringify(priorInvalid.material)===JSON.stringify(value.material),'BILI_FULL_RESULT_CONFLICT','A derived result must match the retained original invalid receipt');key='full-recovered-result-v207:'+activityId+':'+value.stepId;}const prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','An original batch receipt cannot be overwritten');if(!prior)store.set(key,value);return key;}
+  function writeVisualReceipt(activityId,value){const key='visual-receipt-v207:'+activityId+':'+value.stepId,prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_VISION_RESULT_CONFLICT','An original visual response cannot be overwritten');if(!prior)store.set(key,value);return key;}
+  function recoverVisualReceipt(a){
+    const local=store.get('reading-v21:'+a.id,null),receipt=local?.pending?store.get('visual-receipt-v207:'+a.id+':'+local.pending.stepId,null):null;if(!receipt||a.state==='cancelled')return;
+    retainVisualReceipt({a,record:local,receipt,externalReceipt:true,writeRecord:next=>store.transaction(()=>{
+      if(a.lastFailureCode)a.failureHistory=[...(a.failureHistory??[]),{code:a.lastFailureCode,pauseReason:a.pauseReason??null,at:a.updatedAt,recoveredAt:now()}];
+      a.needsReview=false;a.lastFailureCode=next.modelReason??null;if(a.state==='failed'){a.state='paused';a.pauseReason=next.modelReason??'receipt-recovered';}store.set('reading-v21:'+a.id,next);save(a);
+    })});
+  }
+  const visualCallbacks=a=>({readRecord:()=>store.get('reading-v21:'+a.id,null),writeRecord:value=>store.transaction(()=>{store.set('reading-v21:'+a.id,value);save(a);}),readReceipt:stepId=>store.get('visual-receipt-v207:'+a.id+':'+stepId,null),writeReceipt:value=>writeVisualReceipt(a.id,value)});
   const getSchedule=id=>store.get('visual-plan-v21:'+id,null)??parse(db.prepare('SELECT data FROM bili_schedules WHERE id=?').get(id)?.data)??store.get('video-plan:'+id,null);
   const videoSchedules=accountId=>db.prepare("SELECT value FROM a_plugin_kv WHERE (key GLOB 'video-plan:*' OR key GLOB 'visual-plan-v21:*') ORDER BY rowid").all().map(v=>parse(v.value)).filter(s=>s?.accountId===accountId);
   const allSchedules=accountId=>[...new Map([...db.prepare('SELECT data FROM bili_schedules WHERE account_id=? ORDER BY rowid').all(accountId).map(v=>parse(v.data)),...videoSchedules(accountId)].map(s=>[s.id,s])).values()];
@@ -117,14 +131,18 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     managedCatalog=Array.isArray(c.managedConnections)?c.managedConnections:[];
     accountMatches(c.accountId);return c;
   }
-  async function context(characterId,principal,purpose='bilibili-activity',expectedEpoch){
+  async function context(characterId,principal,purpose='bilibili-activity',expectedEpoch,modelConnectionRef){
     assertOpen();assertCurrent(expectedEpoch);
     assert(typeof characterId==='string'&&characterId,'BILI_CHARACTER_REQUIRED','Choose a participating character');
-    const c=await host.invoke('social.context.read',{purpose,characterId,principal,sourcePluginId:PLUGIN_ID,modelConnectionRef:settings().modelConnectionRef,...(purpose==='bilibili-public-comment'?{channel:'bilibili-public',visibilityScope:'public',contextMode:'material-only',includePrivateMemory:false}:{})});
+    const c=await host.invoke('social.context.read',{purpose,characterId,principal,sourcePluginId:PLUGIN_ID,...(modelConnectionRef?{modelConnectionRef}:{}),...(purpose==='bilibili-public-comment'?{channel:'bilibili-public',visibilityScope:'public',contextMode:'material-only',includePrivateMemory:false}:{})});
     assertOpen();assertCurrent(expectedEpoch);
     assert(c?.contextToken&&c.characterId===characterId&&c.lifeId&&c.operationId&&c.personaId&&c.accountId&&Number.isSafeInteger(c.generation),'BILI_CONTEXT_INVALID','A current trusted social context is required');
+    assert(typeof c.connectionRef==='string'&&c.connectionRef,'BILI_MODEL_REQUIRED','The watching character needs an available chat model connection');
+    assert(!modelConnectionRef||c.connectionRef===modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','The original reading model connection is unavailable');
     accountMatches(c.accountId);return c;
   }
+  const modelPin=a=>{assert(typeof a.modelConnectionRef==='string'&&a.modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','The original reading model connection is missing; start a separate reading');return a.modelConnectionRef;};
+  const readingContext=(a,principal,expectedEpoch)=>context(a.characterId,principal,'bilibili-activity',expectedEpoch,modelPin(a));
   function eligible(accountId,{day=clock().day,startMinute=settings().startMinute,endMinute=settings().endMinute,automatic=false}={}){
     assert(!closing,'BILI_CLOSED','The plugin is closing');
     assert(day===clock().day,'BILI_SCHEDULE_EXPIRED','Yesterday\'s authorization cannot carry to today');
@@ -225,18 +243,18 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       await check(c,lease,a,signal);
       if(!a.material&&a.readingMode!=='full-v1'){a.state='acquiring-material';save(a);await bubble(a);await check(c,lease,a,signal);const cached=a.readingMode==='full-v1'?null:reusableMaterial(a.video);materialReused=!!cached;a.material=cached??normalizeMaterial(await managed.acquireMaterial({connectionRef:a.connectionRef,context:c,lease,video:a.video,signal,fullReading:a.readingMode==='full-v1'}),a.video,{fullReading:a.readingMode==='full-v1'});if(a.material.fetchedAt===null)a.material.fetchedAt=now();db.prepare('INSERT INTO bili_materials VALUES(?,?) ON CONFLICT(video_id) DO UPDATE SET data=excluded.data').run(a.video.videoId,JSON.stringify(a.material));save(a);}
       await check(c,lease,a,signal);
-      assert(a.modelConnectionRef,'BILI_MODEL_REQUIRED','Choose a managed activity model connection');
+      assert(a.modelConnectionRef,'BILI_MODEL_REQUIRED','The watching character needs an available chat model connection');
       if(a.readingMode==='full-v1'&&!a.understanding){
         a.state='acquiring-material';a.modelState='prepared';save(a);await bubble(a);
         if(!a.fullMaterialsRef){let materials=a.fullMaterials;if(!materials){const parts=a.video.pages??[{cid:a.video.cid,page:1,duration:a.video.duration}],selected=a.selectedCids??[a.video.cid];a.selectedCids=selected;materials=[];let characters=0;for(const part of parts.filter(p=>selected.includes(p.cid))){await check(c,lease,a,signal);const video=normalizeVideo({...a.video,cid:part.cid,duration:part.duration,currentPage:part.page}),material=part.cid===a.video.cid&&a.material?.coverage==='subtitles'?a.material:normalizeMaterial(await managed.acquireMaterial({connectionRef:a.connectionRef,context:c,lease,video,signal,fullReading:true}),video,{fullReading:true});characters+=material.items.reduce((n,item)=>n+(item.text?.length??0),0);assert(characters<=64*1024*1024,'BILI_FULL_TEXT_CAPACITY','Retained subtitle sources exceed the full-reading budget');materials.push(material);}assert(materials.length===selected.length,'BILI_FULL_PART_INVALID','Every selected part must be acquired');}a.fullMaterialsRef='full-materials-v206:'+a.id;store.set(a.fullMaterialsRef,materials);delete a.fullMaterials;save(a);}
         a.state='understanding';save(a);await bubble(a);
-        const result=await runFullReading({a,c,lease,host,materials:store.get('full-materials-v206:'+a.id,[]),signal,check:()=>check(c,lease,a,signal),readRecord:()=>store.get('reading-full-v1:'+a.id,null),transaction:fn=>store.transaction(fn),writeRecord:value=>store.transaction(()=>{store.set('reading-full-v1:'+a.id,value);save(a);}),readResult:stepId=>store.get('full-result-v206:'+a.id+':'+stepId,null),writeResult:value=>writeFullResult(a.id,value)});
+        const result=await runFullReading({a,c,lease,host,materials:store.get('full-materials-v206:'+a.id,[]),signal,check:()=>check(c,lease,a,signal),readRecord:()=>store.get('reading-full-v1:'+a.id,null),transaction:fn=>store.transaction(fn),writeRecord:value=>store.transaction(()=>{store.set('reading-full-v1:'+a.id,value);save(a);}),readResult:stepId=>readFullResult(a.id,stepId),writeResult:value=>writeFullResult(a.id,value)});
         if(result.awaitingConfirmation){a.state='paused';a.pauseReason='BILI_FULL_PLAN_CONFIRMATION_REQUIRED';a.lastFailureCode=null;a.needsReview=false;save(a);await bubble(a);return a;}
         a.material=result.material;a.providerRequestId=result.providerRequestId;a.modelState='returned';a.effective=result.complete;a.understanding=result.understanding;save(a);
       }
       if(a.visual&&a.readingMode!=='full-v1'&&!a.understanding){
         a.state='understanding';a.modelState='prepared';save(a);await bubble(a);
-        const result=await runVisualReading({a,c,lease,host,material:a.material,signal,check:()=>check(c,lease,a,signal),readRecord:()=>store.get('reading-v21:'+a.id,null),writeRecord:value=>{store.set('reading-v21:'+a.id,value);save(a);}});
+        const result=await runVisualReading({a,c,lease,host,material:a.material,signal,check:()=>check(c,lease,a,signal),...visualCallbacks(a)});
         a.material=result.material;a.providerRequestId=result.providerRequestId;a.modelState='returned';a.effective=result.complete&&result.understanding.completedMaterial===true;a.understanding={...result.understanding,notes:text(result.understanding.notes,100000),shareText:text(result.understanding.shareText,3000),interestTags:Array.isArray(result.understanding.interestTags)?result.understanding.interestTags.slice(0,5):[]};save(a);
       }
       if(!a.understanding){
@@ -264,7 +282,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       }
       a.modelState='returned';a.providerRequestId=result?.providerRequestId??result?.requestId??result?.usageReceipt?.providerRequestId??null;
       save(a);
-      let u=result?.understanding;try{if(!u&&typeof result?.text==='string')u=JSON.parse(result.text);}catch{}
+      const u=parseModelResponse(result);
       assert(u&&typeof u.summary==='string'&&Array.isArray(u.evidenceRefs)&&u.evidenceRefs.length>0,'BILI_UNDERSTANDING_INVALID','The model did not return evidence-linked understanding');
       const refs=new Set(a.material.items.map(v=>v.id));assert(u.evidenceRefs.every(id=>refs.has(id)),'BILI_EVIDENCE_INVALID','Understanding cited material that was never acquired');
       assert(a.providerRequestId,'BILI_MODEL_RECEIPT_REQUIRED','The host must return the actual model request identity');
@@ -296,8 +314,8 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     }finally{if(lease)try{await host.invoke('activity.finish',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,activityId:leaseAttemptId,status:row(a.id)?.state??'failed'});}catch{}inflight.delete(a.id);}
   }
   const managed=platform??createBilibiliHttpPlatform({request:({signal,...payload})=>host.invoke('connections.request',payload,{signal}),now});
-  async function begin({characterId,videoId=null,schedule=null,manual=false,visual=false,selectedCids=null,fullConfig=null},principal,expectedEpoch){
-    const c=await context(characterId,principal,'bilibili-activity',expectedEpoch),s=settings();
+  async function begin({characterId,videoId=null,schedule=null,manual=false,visual=false,selectedCids=null,fullConfig=null,claimGuard=null},principal,expectedEpoch){
+    claimGuard?.();const c=await context(characterId,principal,'bilibili-activity',expectedEpoch),s=settings();claimGuard?.();
     c.interests=[...(Array.isArray(c.interests)?c.interests:[]),...Object.entries(store.get(`interests:${c.characterId}:${c.lifeId}`,{})).map(([tag,count])=>({tag,weight:Math.min(3,count/10)}))];
     eligible(c.accountId,{day:schedule?.day??clock().day,startMinute:schedule?.startMinute??s.startMinute,endMinute:schedule?.endMinute??s.endMinute,automatic:!!schedule&&!manual});
     if(c.sleeping){
@@ -305,31 +323,32 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       return {state:'waiting-sleep',scheduleId:schedule?.id??null,videoAcquired:false,watchQuotaConsumed:false};
     }
     if(schedule&&!manual){
-      const model=c.activityModel?.connectionRef===s.modelConnectionRef?c.activityModel:managedCatalog.find(v=>v.ref===s.modelConnectionRef&&v.platform==='model');
+      const model=managedCatalog.find(v=>v.ref===c.connectionRef&&v.platform==='model');
       const preference=preferOffPeak({at:now(),timeZone,day:schedule.day,startMinute:schedule.startMinute,endMinute:schedule.endMinute,provider:model?.provider,holidayDates:Array.isArray(model?.allDayOffPeakDates)?model.allDayOffPeakDates:[]});
-      if(!preference.runNow){schedule.state='scheduled';schedule.nextEligibleAt=preference.resumeAt;schedule.pricingPreference=preference;schedule.deferredForConnectionRef=s.modelConnectionRef;saveSchedule(schedule);return {state:'deferred',resumeAt:preference.resumeAt,reason:preference.reason};}
+      if(!preference.runNow){schedule.state='scheduled';schedule.nextEligibleAt=preference.resumeAt;schedule.pricingPreference=preference;schedule.deferredForConnectionRef=c.connectionRef;saveSchedule(schedule);return {state:'deferred',resumeAt:preference.resumeAt,reason:preference.reason};}
     }
-    const features=typeof host.describe==='function'?(await host.describe()).features??[]:[],visualHost=features.includes('bilibili-vision-v1'),fullHost=features.includes('bilibili-full-reading-v1');assertOpen();assertCurrent(expectedEpoch);
+    const features=typeof host.describe==='function'?(await host.describe()).features??[]:[],visualHost=features.includes('bilibili-vision-v1'),fullHost=features.includes('bilibili-full-reading-v1');assertOpen();assertCurrent(expectedEpoch);claimGuard?.();
     if(schedule&&!manual&&(visualHost||schedule.visualReading===true||s.visualAutoApproved===true)&&s.visualAutoApproved!==true){schedule.state='paused';schedule.pauseReason='visual-approval-required';saveSchedule(schedule);return {state:'paused',reason:'visual-approval-required',scheduleId:schedule.id};}
     assert(s.connectionRef,'BILI_CONNECTION_REQUIRED','Choose a managed Bilibili account connection');
-    const a={id:randomUUID(),accountId:c.accountId,characterId:c.characterId,lifeId:c.lifeId,operationId:c.operationId,personaId:c.personaId,contextToken:c.contextToken,generation:c.generation,controlEpoch:expectedEpoch??controlEpoch(),connectionRef:s.connectionRef,modelConnectionRef:s.modelConnectionRef,sourceMode:c.sourceMode??'unverified-host',day:schedule?.day??clock().day,startMinute:schedule?.startMinute??s.startMinute,endMinute:schedule?.endMinute??s.endMinute,automatic:!!schedule&&!manual,scheduleId:schedule?.id??null,requestedVideoId:videoId,...(schedule?.watchMode==='video'?{videoPlan:true}:{}),state:'eligible',startedAt:now(),visual:visual===true||!!schedule&&(visualHost||fullHost||schedule.visualReading===true||s.visualAutoApproved===true)};
+    const a={id:randomUUID(),accountId:c.accountId,characterId:c.characterId,lifeId:c.lifeId,operationId:c.operationId,personaId:c.personaId,contextToken:c.contextToken,generation:c.generation,controlEpoch:expectedEpoch??controlEpoch(),connectionRef:s.connectionRef,modelConnectionRef:c.connectionRef,sourceMode:c.sourceMode??'unverified-host',day:schedule?.day??clock().day,startMinute:schedule?.startMinute??s.startMinute,endMinute:schedule?.endMinute??s.endMinute,automatic:!!schedule&&!manual,scheduleId:schedule?.id??null,requestedVideoId:videoId,...(schedule?.watchMode==='video'?{videoPlan:true}:{}),state:'eligible',startedAt:now(),visual:visual===true||!!schedule&&(visualHost||fullHost||schedule.visualReading===true||s.visualAutoApproved===true)};
     if(fullHost&&a.visual){assert(selectedCids===null||Array.isArray(selectedCids)&&selectedCids.length>0&&selectedCids.every(Number.isSafeInteger),'BILI_FULL_PART_INVALID','Choose valid video parts');a.readingMode='full-v1';a.selectedCids=selectedCids;a.fullConfig=fullConfig??{sampleSeconds:s.sampleSeconds,windowSeconds:s.windowSeconds};}
-    store.transaction(()=>{reserve(a.id,c.accountId,a.day,'watch');a.state='selecting';save(a);});
+    store.transaction(()=>{claimGuard?.();reserve(a.id,c.accountId,a.day,'watch');a.state='selecting';save(a);});
     const controller=new AbortController();const entry={controller,accountId:c.accountId,reason:null,promise:null};inflight.set(a.id,entry);entry.promise=perform(a,c,controller.signal,principal);return entry.promise;
   }
   function interrupt(accountId,reason){for(const entry of inflight.values()){if(entry.accountId===accountId){entry.reason=reason;entry.controller.abort();}}}
-  async function sendComment(activityId,principal,{activityContext=null,expectedEpoch,draftOnly=false}={}){
-    assertCurrent(expectedEpoch);
+  async function sendComment(activityId,principal,{activityContext=null,expectedEpoch,expectedCommentEpoch=commentEpoch(),draftOnly=false}={}){
+    assertCurrent(expectedEpoch);const authorizationEpoch=expectedCommentEpoch;
     const owner=activityContext??await manage(principal),a=row(activityId),s=settings();assert(a?.accountId===owner.accountId&&a.state==='completed','BILI_COMMENT_ACTIVITY_REQUIRED','A completed, account-owned viewing is required');
     assert(s.commentMode==='managed'&&s.commentConsent,'BILI_COMMENTS_OFF','Comments are disabled');
+    const authorize=()=>authorizeComment(authorizationEpoch,s.connectionRef);authorize();
     assert(a.day===clock().day,'BILI_COMMENT_EXPIRED','Old activities cannot replay today\'s comment allowance');
-    const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
+    const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);authorize();assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
     eligible(c.accountId,{day:a.day});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
     const guard={...a,automatic:false,controlEpoch:expectedEpoch??controlEpoch()};
     const id=`${a.id}:comment`,prior=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);
     if(prior)return {...parse(prior.data),state:prior.state};
     const claimId=randomUUID();
-    const claimed=store.transaction(()=>{if(db.prepare('SELECT id FROM bili_comments WHERE id=?').get(id))return false;reserve(id,a.accountId,a.day,'comment');db.prepare('INSERT INTO bili_comments VALUES(?,?,?,?,?)').run(id,a.accountId,a.id,'generating',JSON.stringify({id,activityId:a.id,claimId,startedAt:now()}));return true;});
+    const claimed=store.transaction(()=>{authorize();if(db.prepare('SELECT id FROM bili_comments WHERE id=?').get(id))return false;reserve(id,a.accountId,a.day,'comment');db.prepare('INSERT INTO bili_comments VALUES(?,?,?,?,?)').run(id,a.accountId,a.id,'generating',JSON.stringify({id,activityId:a.id,claimId,startedAt:now()}));return true;});
     if(!claimed){const old=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);return {...parse(old.data),state:old.state};}
     const controller=new AbortController(),entry={controller,accountId:a.accountId,kind:'comment',reason:null,promise:null,resolve:null};entry.promise=new Promise(resolve=>{entry.resolve=resolve;});inflight.set(id,entry);let lease,sendStarted=false,commentRequestId=null;
     function commitComment(receipt){
@@ -339,17 +358,17 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     try{
       lease=await host.invoke('activity.lease',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,activityId:id,kind:'bilibili-comment',generation:c.generation},{signal:controller.signal});
       assert(lease?.leaseId&&Number.isSafeInteger(lease.generation),'BILI_LEASE_REQUIRED','A current comment lease is required');
-      await check(c,lease,guard,controller.signal);
-      const generated=await host.invoke('models.request',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,connectionRef:s.modelConnectionRef,purpose:'bilibili-comment',activityId:a.id,video:a.video,material:a.material,evidenceRefs:a.understanding.evidenceRefs,...publicCommentPrompt(a.video,a.material,a.understanding.evidenceRefs),channel:'bilibili-public',visibilityScope:'public',contextMode:'material-only',includePrivateMemory:false,outputSchema:'bilibili-comment-proposal-v1'},{signal:controller.signal});
+      await check(c,lease,guard,controller.signal);authorize();
+      const generated=await host.invoke('models.request',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,connectionRef:c.connectionRef,purpose:'bilibili-comment',activityId:a.id,video:a.video,material:a.material,evidenceRefs:a.understanding.evidenceRefs,...publicCommentPrompt(a.video,a.material,a.understanding.evidenceRefs),channel:'bilibili-public',visibilityScope:'public',contextMode:'material-only',includePrivateMemory:false,outputSchema:'bilibili-comment-proposal-v1'},{signal:controller.signal});
       commentRequestId=generated.requestId??generated.providerRequestId??null;
-      let proposal=generated?.comment;try{if(!proposal&&generated?.text)proposal=JSON.parse(generated.text);}catch{}
+      const proposal=parseModelResponse(generated,'comment');
       assert(proposal&&typeof proposal.text==='string'&&proposal.text.trim()&&proposal.text.length<=1000&&Array.isArray(proposal.evidenceRefs)&&proposal.evidenceRefs.length>0&&proposal.evidenceRefs.every(v=>a.understanding.evidenceRefs.includes(v))&&(generated.requestId||generated.providerRequestId),'BILI_COMMENT_INVALID','The model must generate a short evidence-linked comment');
       const commentText=proposal.text;
-      await check(c,lease,guard,controller.signal);
+      await check(c,lease,guard,controller.signal);authorize();
       db.prepare("UPDATE bili_comments SET data=? WHERE id=? AND state='generating'").run(JSON.stringify({id,activityId:a.id,claimId,text:commentText,startedAt:now()}),id);
       if(draftOnly){const draft={id,activityId:a.id,claimId,text:commentText,state:'draft',providerRequestId:commentRequestId,draftedAt:now()};db.prepare("UPDATE bili_comments SET state='draft',data=? WHERE id=? AND state='generating'").run(JSON.stringify(draft),id);return draft;}
       // Last gate after reservation; no await between it and handing the send to the managed adapter.
-      await check(c,lease,guard,controller.signal);assert(settings().commentMode==='managed'&&settings().commentConsent,'BILI_COMMENTS_OFF','Comment authorization was revoked');
+      await check(c,lease,guard,controller.signal);authorize();
       db.prepare("UPDATE bili_comments SET state='sending' WHERE id=? AND state='generating'").run(id);sendStarted=true;
       const result=await managed.sendComment({connectionRef:s.connectionRef,context:c,lease,video:a.video,text:commentText,idempotencyKey:id,signal:controller.signal});
       const state=result?.status==='sent'&&isPlatformMessageId(result.platformId)?'sent':result?.status==='failed'?'failed':'unknown';
@@ -367,17 +386,18 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   // stays active. A posted comment and a stored draft are completed work.
   function finishStatus(state){return state==='sent'||state==='draft'?'completed':state==='failed'||state==='unknown'?state:'cancelled';}
   // Preview mode: post a stored draft (optionally edited by the user), with the same gates as a direct send.
-  async function postDraft(activityId,principal,{expectedEpoch,text=null}={}){
-    assertCurrent(expectedEpoch);
+  async function postDraft(activityId,principal,{expectedEpoch,expectedCommentEpoch=commentEpoch(),text=null}={}){
+    assertCurrent(expectedEpoch);const authorizationEpoch=expectedCommentEpoch;
     const owner=await manage(principal),a=row(activityId),s=settings();assert(a?.accountId===owner.accountId&&a.state==='completed','BILI_COMMENT_ACTIVITY_REQUIRED','A completed, account-owned viewing is required');
     assert(s.commentMode==='managed'&&s.commentConsent,'BILI_COMMENTS_OFF','Comments are disabled');
+    const authorize=()=>authorizeComment(authorizationEpoch,s.connectionRef);authorize();
     assert(a.day===clock().day,'BILI_COMMENT_EXPIRED','Old activities cannot replay today\'s comment allowance');
     assert(text===null||(typeof text==='string'&&text.trim().length>0&&text.length<=1000),'BILI_COMMENT_INVALID','A comment needs 1 to 1000 characters');
-    const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
+    const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);authorize();assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
     eligible(c.accountId,{day:a.day});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
     const guard={...a,automatic:false,controlEpoch:expectedEpoch??controlEpoch()},id=`${a.id}:comment`,claimId=randomUUID();
     // draft -> approved is the single claim; a second click sees "approved" and gets the stored row back
-    const claimed=store.transaction(()=>{const prior=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);if(prior?.state!=='draft')return prior??null;const d=parse(prior.data),postText=text===null?d.text:text.trim();db.prepare("UPDATE bili_comments SET state='approved',data=? WHERE id=? AND state='draft'").run(JSON.stringify({...d,claimId,postText,edited:postText!==d.text}),id);return true;});
+    const claimed=store.transaction(()=>{authorize();const prior=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);if(prior?.state!=='draft')return prior??null;const d=parse(prior.data),postText=text===null?d.text:text.trim();db.prepare("UPDATE bili_comments SET state='approved',data=? WHERE id=? AND state='draft'").run(JSON.stringify({...d,claimId,postText,edited:postText!==d.text}),id);return true;});
     if(claimed!==true){assert(claimed,'BILI_COMMENT_NOT_DRAFT','There is no draft to post');return {...parse(claimed.data),state:claimed.state};}
     const controller=new AbortController(),entry={controller,accountId:a.accountId,kind:'comment',reason:null,promise:null,resolve:null};entry.promise=new Promise(resolve=>{entry.resolve=resolve;});inflight.set(id,entry);let lease,sendStarted=false;
     const draft=parse(db.prepare('SELECT data FROM bili_comments WHERE id=?').get(id).data),postActivityId=id+':post:'+claimId;
@@ -393,7 +413,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       lease=await host.invoke('activity.lease',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,activityId:postActivityId,kind:'bilibili-comment',generation:c.generation},{signal:controller.signal});
       assert(lease?.leaseId&&Number.isSafeInteger(lease.generation),'BILI_LEASE_REQUIRED','A current comment lease is required');
       // Last gate; no await between it and handing the send to the managed adapter.
-      await check(c,lease,guard,controller.signal);assert(settings().commentMode==='managed'&&settings().commentConsent,'BILI_COMMENTS_OFF','Comment authorization was revoked');
+      await check(c,lease,guard,controller.signal);authorize();
       db.prepare("UPDATE bili_comments SET state='sending',data=? WHERE id=? AND state='approved'").run(JSON.stringify(sending),id);sendStarted=true;
       const result=await managed.sendComment({connectionRef:s.connectionRef,context:c,lease,video:a.video,text:sentText,idempotencyKey:id,signal:controller.signal});
       const state=result?.status==='sent'&&isPlatformMessageId(result.platformId)?'sent':result?.status==='failed'?'failed':'unknown';
@@ -426,16 +446,16 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     for(const rec of db.prepare("SELECT data FROM bili_schedules WHERE state='running'").all()){const s=parse(rec.data);s.state='paused';saveSchedule(s);}
     for(const s of videoSchedules(store.get('accountId',null)))if(s.state==='running'){s.state='paused';saveSchedule(s);}
   });
-  async function dispatchInternal(action,payload={},principal,expectedEpoch){
+  async function dispatchInternal(action,payload={},principal,expectedEpoch,expectedCommentEpoch=commentEpoch()){
     assert(!closing,'BILI_CLOSED','The plugin is closed');
     const owner=await manage(principal),accountId=owner.accountId;
     if(['now','continue','schedule.create','schedule.start','settings.update','idle','tick','comment.send','comment.draft','comment.post'].includes(action)||action==='today.allow'&&payload.allowed===true)assertCurrent(expectedEpoch);
     if(action==='settings.read')return {settings:settings(),accountId,timeZone,sourceMode:owner.sourceMode??'unverified-host',characters:catalogCharacters(owner),connections:catalogConnections(owner),todayAllowed:store.get(`day:${accountId}:${clock().day}`,true),stopped:store.get('stopped',false)};
     if(action==='settings.update'){
       const previous=settings(),next=validSettings(payload,previous);saveSettings(next);
-      if(['connectionRef','modelConnectionRef','startMinute','endMinute'].some(key=>previous[key]!==next[key]))revokeControl(accountId,'settings-changed');
+      if(['connectionRef','startMinute','endMinute'].some(key=>previous[key]!==next[key]))revokeControl(accountId,'settings-changed');
       if(previous.autonomousEnabled&&!next.autonomousEnabled)for(const[id,entry]of inflight){if(row(id)?.automatic){entry.reason='autonomous-disabled';entry.controller.abort();}}
-      if(previous.commentMode==='managed'&&next.commentMode!=='managed'||previous.commentConsent&&!next.commentConsent)for(const entry of inflight.values())if(entry.kind==='comment'){entry.reason='comments-disabled';entry.controller.abort();}
+      if(['commentMode','commentConsent','connectionRef'].some(key=>previous[key]!==next[key])){store.set('commentControlEpoch',commentEpoch()+1);for(const entry of inflight.values())if(entry.kind==='comment'){entry.reason='comments-disabled';entry.controller.abort();}}
       if(next.shareMode==='record-only')for(const rec of db.prepare("SELECT id,data FROM bili_outbox WHERE account_id=? AND kind='share' AND state='pending'").all(accountId))if(parse(rec.data).kind==='bilibili-share')db.prepare("UPDATE bili_outbox SET state='cancelled' WHERE id=?").run(rec.id);
       return next;
     }
@@ -458,13 +478,18 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       if(a.readingMode==='full-v1'){
         const record=()=>store.get('reading-full-v1:'+a.id,null),call=async(operation,parameters={})=>{assertOpen();return host.invoke('connections.request',{platform:'bilibili',contextToken:owner.contextToken,connectionRef:a.connectionRef,operation:'video.fullReading.'+operation,parameters:{readingId:a.id,...parameters}});};
         if(action==='reading.get'){
-          const revision=readingControl(a.id),value=await call('get');assertOpen();const state=value.reading??value,current=row(a.id),local=record();
-          if(expectedEpoch===controlEpoch()&&revision===readingControl(a.id)&&current.state!=='cancelled'&&local&&(local.pending||current.needsReview||current.modelState==='started')&&(state.recoveredResults??[]).length){
+          const revision=readingControl(a.id),value=await call('get');assertOpen();const state=value.reading??value;let current=row(a.id),local=record();
+          if(expectedEpoch===controlEpoch()&&revision===readingControl(a.id)&&['failed','paused'].includes(current.state)&&current.lastFailureCode==='SOCIAL_MODEL_ID_CONFLICT'&&current.connectionRef===settings().connectionRef&&local?.pending&&(state.notSentResults??[]).length){
+            store.transaction(()=>{assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision&&JSON.stringify(row(a.id))===JSON.stringify(current)&&JSON.stringify(record())===JSON.stringify(local),'BILI_CONTROL_STALE','A newer reading control superseded not-sent recovery');const next=recoverNotSentFullReading(local,state);if(next===local)return;current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now(),recovery:'host-proven-not-sent'}];current.state='paused';current.pauseReason='not-sent-recovery';current.lastFailureCode=null;current.modelState='prepared';current.needsReview=false;store.set('reading-full-v1:'+a.id,next);save(current);});
+          }
+          current=row(a.id);local=record();
+          if(expectedEpoch===controlEpoch()&&revision===readingControl(a.id)&&current.state!=='cancelled'&&local&&(local.pending||current.needsReview||current.modelState==='started'||(state.recoveredResults??[]).some(receipt=>receipt.receiptKind!=='invalid'&&local.invalidReceipts?.[receipt.stepId]&&!local.results?.[receipt.stepId]))&&(state.recoveredResults??[]).length){
             store.transaction(()=>{
               assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer control superseded receipt recovery');
-              const next=recoverFullReadingRecord(local,state,result=>writeFullResult(a.id,result),stepId=>store.get('full-result-v206:'+a.id+':'+stepId,null));if(next===local)return;
-              store.set('reading-full-v1:'+a.id,next);
-              if(current.lastFailureCode)current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now()}];
+              const next=recoverFullReadingRecord(local,state,(result,options)=>writeFullResult(a.id,result,options),stepId=>readFullResult(a.id,stepId));if(next===local)return;
+              const recoveredInvalid=Object.keys(local.invalidReceipts??{}).some(stepId=>!next.invalidReceipts?.[stepId]&&next.results?.[stepId]&&next.recoveredInvalidReceipts?.[stepId]);store.set('reading-full-v1:'+a.id,next);
+              if(current.lastFailureCode||recoveredInvalid&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode??null,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now()}];
+              if(recoveredInvalid&&current.state==='paused'&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.pauseReason='receipt-recovered';
               if(current.state==='failed'){current.receiptRecoveryFailures=[...(current.receiptRecoveryFailures??[]),{code:current.lastFailureCode,at:current.updatedAt,recoveredAt:now()}];current.state='paused';current.pauseReason='receipt-recovered';}
               const invalid=Object.keys(next.invalidReceipts??{}).length>0;current.needsReview=next.needsReview===true||!!next.pending;current.modelState=invalid?'returned':'prepared';current.lastFailureCode=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':null;if(invalid){current.state='paused';current.pauseReason='BILI_FULL_MATERIAL_NOT_COMPLETED';}save(current);
             });
@@ -473,48 +498,75 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
         }
         if(action==='reading.image')return call('image',{ref:payload.ref});
         if(action==='reading.open')return call('open',{activityId:a.id});
-        if(action==='reading.pause'||action==='reading.stop'){readingControls.set(a.id,readingControl(a.id)+1);const entry=inflight.get(a.id);if(entry){entry.reason=action==='reading.pause'?'pause':'stop';entry.controller.abort();await entry.promise;}await call(action==='reading.pause'?'pause':'stop');const current=row(a.id);if(!terminal.has(current.state)||action==='reading.stop'&&current.state==='failed'&&zeroCallFailure(current,record())){if(current.state==='failed')retainZeroCallFailure(current,'stop');current.state=action==='reading.pause'?'paused':'cancelled';current.pauseReason=action==='reading.pause'?'pause':'stop';save(current);if(current.state==='cancelled')settle(current.id,'released');}return {activityId:a.id,paused:action==='reading.pause',stopped:action==='reading.stop'};}
-        if(action==='reading.replan'){const prior=await call('get');assert(!(prior.reading??prior).confirmed,'BILI_FULL_PLAN_FROZEN','Confirmed plans remain frozen; start a separate new viewing');await call('stop');a.state='cancelled';a.pauseReason='replanned';save(a);settle(a.id,'released');return begin({characterId:a.characterId,videoId:a.video.videoId,visual:true,selectedCids:payload.selectedCids,fullConfig:payload.config},principal,expectedEpoch);}
+        if(action==='reading.pause'||action==='reading.stop'){
+          const revision=readingControl(a.id)+1;readingControls.set(a.id,revision);const entry=inflight.get(a.id);
+          if(entry){entry.reason=action==='reading.pause'?'pause':'stop';entry.controller.abort();await entry.promise;}
+          if(readingControl(a.id)!==revision)throw fail('BILI_CONTROL_STALE','A newer reading control superseded this request');
+          await call(action==='reading.pause'?'pause':'stop');
+          assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer reading control superseded this request');
+          const current=row(a.id);if(!terminal.has(current.state)||action==='reading.stop'&&current.state==='failed'&&zeroCallFailure(current,record())){if(current.state==='failed')retainZeroCallFailure(current,'stop');current.state=action==='reading.pause'?'paused':'cancelled';current.pauseReason=action==='reading.pause'?'pause':'stop';save(current);if(current.state==='cancelled')settle(current.id,'released');}
+          return {activityId:a.id,paused:action==='reading.pause',stopped:action==='reading.stop'};
+        }
+        // All reading mutations claim the same identity after their asynchronous preflight.
+        const claimMutation=(revision,original,originalCheckpoint)=>{
+          assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision&&!readingMutations.has(a.id)&&JSON.stringify(row(a.id))===original&&JSON.stringify(record())===originalCheckpoint,'BILI_CONTROL_STALE','A newer reading mutation superseded this request');
+          const token=Symbol(a.id);readingMutations.set(a.id,token);
+          return {guard(){assertOpen();assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision&&readingMutations.get(a.id)===token,'BILI_CONTROL_STALE','A newer reading control superseded this request');},release(){if(readingMutations.get(a.id)===token)readingMutations.delete(a.id);}};
+        };
+        if(action==='reading.replan'){
+          assertCurrent(expectedEpoch);const revision=readingControl(a.id),original=JSON.stringify(a),originalCheckpoint=JSON.stringify(record()),prior=await call('get'),state=prior.reading??prior;
+          const mutation=claimMutation(revision,original,originalCheckpoint);
+          try{
+            assert(a.state==='paused'&&record()?.confirmed!==true&&state.confirmed===false&&state.planHash===record()?.planHash&&['awaiting-confirmation','paused'].includes(state.phase),'BILI_FULL_PLAN_FROZEN','Only the original unconfirmed preview can be replanned');
+            assert(!inflight.has(a.id)&&!record()?.pending&&!Object.keys(record()?.results??{}).length&&!Object.keys(record()?.invalidReceipts??{}).length&&(!state.calls||state.calls.length===0),'BILI_FULL_PLAN_FROZEN','A submitted or returned reading cannot be replanned');
+            mutation.guard();await call('stop',{onlyIfUnconfirmed:true,planHash:state.planHash,revision:state.revision});mutation.guard();
+            store.transaction(()=>{mutation.guard();const current=row(a.id);assert(JSON.stringify(current)===original&&JSON.stringify(record())===originalCheckpoint,'BILI_CONTROL_STALE','The preview changed before replacement');current.state='cancelled';current.pauseReason='replanned';save(current);settle(current.id,'released');});
+            return await begin({characterId:a.characterId,videoId:a.video.videoId,visual:true,selectedCids:payload.selectedCids,fullConfig:payload.config,claimGuard:mutation.guard},principal,expectedEpoch);
+          }finally{mutation.release();}
+        }
         if(action==='reading.confirm'||action==='reading.continue'){
-          assertCurrent(expectedEpoch);const revision=readingControl(a.id),original=JSON.stringify(a),originalCheckpoint=JSON.stringify(record()),guard=()=>{assertOpen();assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer reading control superseded this request');};
-          assert(a.modelConnectionRef===settings().modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','Start a separate reading to use another model');assert(!a.needsReview&&!record()?.pending,'BILI_VISION_UNCERTAIN','An unknown submission cannot be replayed');assert(!Object.keys(record()?.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The original paid invalid response is retained and cannot be replayed');
+          assertCurrent(expectedEpoch);const revision=readingControl(a.id),original=JSON.stringify(a),originalCheckpoint=JSON.stringify(record());let mutation=null;const guard=()=>{assertOpen();assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer reading control superseded this request');mutation?.guard();};
+          try{
+          modelPin(a);assert(!a.needsReview&&!record()?.pending,'BILI_VISION_UNCERTAIN','An unknown submission cannot be replayed');assert(!Object.keys(record()?.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The original paid invalid response is retained and cannot be replayed');
           let value;
           if(action==='reading.confirm'){
             assert(payload.confirmed===true,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Explicit confirmation of this frozen plan is required');
             const preview=await call('get'),hostState=preview.reading??preview;guard();
             assert(hostState.readingId===a.id&&typeof payload.planHash==='string'&&payload.planHash===hostState.planHash&&payload.planHash===record()?.planHash,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Confirmation must match the original frozen plan');
             assert(hostState.needsReview!==true&&(!Array.isArray(hostState.calls)||!hostState.calls.some(x=>['submitted','unknown'].includes(x.status))),'BILI_VISION_UNCERTAIN','An unknown submission cannot be confirmed or replayed');
+            mutation=claimMutation(revision,original,originalCheckpoint);
             if(a.state!=='paused'||hostState.confirmed===true){assert(hostState.confirmed===true,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Only a paused preview can receive new confirmation');value=preview;}
             else{
               assert(hostState.confirmed===false&&['awaiting-confirmation','paused'].includes(hostState.phase),'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Preview the frozen plan before confirming');
-              assert(!inflight.has(a.id)&&!confirmingReadings.has(a.id)&&JSON.stringify(row(a.id))===original&&JSON.stringify(record())===originalCheckpoint,'BILI_CONTROL_STALE','The reading changed while confirmation was being checked');
-              confirmingReadings.add(a.id);try{value=await call('confirm',{confirmed:true,planHash:payload.planHash});}finally{confirmingReadings.delete(a.id);}
+              assert(!inflight.has(a.id)&&JSON.stringify(row(a.id))===original&&JSON.stringify(record())===originalCheckpoint,'BILI_CONTROL_STALE','The reading changed while confirmation was being checked');
+              value=await call('confirm',{confirmed:true,planHash:payload.planHash});
             }
-          }else value=await call('get');
+          }else{value=await call('get');mutation=claimMutation(revision,original,originalCheckpoint);}
           const state=value.reading??value;guard();assert(state.confirmed===true,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Preview and confirm the full plan first');assert(state.needsReview!==true&&(!Array.isArray(state.calls)||!state.calls.some(x=>['submitted','unknown'].includes(x.status))),'BILI_VISION_UNCERTAIN','An unknown submission cannot be resumed');
           if(action==='reading.continue'&&a.state==='failed'){
             assert(recoverableZeroCall(a,state),'BILI_VISION_UNCERTAIN','Only a host-proven zero-call lease failure can be resumed');
-            const c=await context(a.characterId,principal,'bilibili-activity',expectedEpoch);guard();assert(c.accountId===a.accountId&&c.characterId===a.characterId&&c.personaId===a.personaId&&c.lifeId===a.lifeId&&c.operationId===a.operationId&&c.generation===a.generation,'BILI_LIFE_CHANGED','This reading belongs to another account or life');eligible(accountId,{...a,automatic:false});
+            const c=await readingContext(a,principal,expectedEpoch);guard();assert(c.accountId===a.accountId&&c.characterId===a.characterId&&c.personaId===a.personaId&&c.lifeId===a.lifeId&&c.operationId===a.operationId&&c.generation===a.generation,'BILI_LIFE_CHANGED','This reading belongs to another account or life');eligible(accountId,{...a,automatic:false});
             store.transaction(()=>{guard();const current=row(a.id),local=record();assert(!inflight.has(a.id)&&JSON.stringify(current)===original&&JSON.stringify(local)===originalCheckpoint&&recoverableZeroCall(current,state),'BILI_CONTROL_STALE','The failed reading changed while recovery was being checked');if(current.scheduleId)assert(!['cancelled','completed'].includes(getSchedule(current.scheduleId)?.state),'BILI_SCHEDULE_CANCELLED','This reading plan was cancelled');retainZeroCallFailure(current,'manual-zero-call');current.state='paused';current.pauseReason='zero-call-recovery';current.lastFailureCode=null;save(current);store.set('reading-full-v1:'+a.id,syncFullReadingRecord(local,state));});
           }else if(action==='reading.confirm'){
             const current=row(a.id);assert(JSON.stringify(current)===original,'BILI_CONTROL_STALE','The reading changed while confirmation was being checked');store.set('reading-full-v1:'+a.id,syncFullReadingRecord(record(),state));
           }
-          guard();const current=row(a.id);if(current.state!=='paused')return fullReadingView(current,state);store.set('stopped',false);store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch,a.id,guard);
+          guard();const current=row(a.id);if(current.state!=='paused')return fullReadingView(current,state);store.set('stopped',false);store.set('pausedByUser',false);store.set('chatActive',false);return await tick(principal,accountId,true,expectedEpoch,a.id,guard);
+          }finally{mutation?.release();}
         }
         throw fail('BILI_FULL_PLAN_FROZEN','This action is not part of the frozen complete-reading plan');
       }
       const managedCall=async(operation,parameters={})=>host.invoke('connections.request',{platform:'bilibili',contextToken:owner.contextToken,connectionRef:settings().connectionRef,operation,parameters:{readingId:a.id,...parameters}});
-      if(action==='reading.get'){let value;try{value=await managedCall('video.storyboard.get');}catch(error){const pending=store.get('reading-v21:'+a.id,null),beforePrepare=pending?.phase==='preparing'&&!pending.pending&&Object.keys(pending.results??{}).length===0&&['BILI_VISION_MODEL_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_UNAVAILABLE','BILI_VISION_UNSUPPORTED'].includes(a.lastFailureCode);if(error.code!=='BILI_VISION_READING_UNAVAILABLE'||!beforePrepare)throw error;value={readingId:a.id,phase:a.state,cells:[],segments:[],progress:{completed:0,total:0},remaining:null,zoomRemaining:null,budgetKnown:false};}return {...(value.reading??value),activityId:a.id,needsReview:a.needsReview===true||!!store.get('reading-v21:'+a.id,null)?.pending,phase:['paused','partial','completed','cancelled','failed'].includes(a.state)?a.state:(value.reading??value).phase,modelReason:a.lastFailureCode??null,results:Object.values(store.get('reading-v21:'+a.id,{results:{}}).results??{}).map(x=>({stepId:x.stepId,from:x.from,to:x.to,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};}
+      if(action==='reading.get'){recoverVisualReceipt(a);let value;try{value=await managedCall('video.storyboard.get');}catch(error){const pending=store.get('reading-v21:'+a.id,null),beforePrepare=pending?.phase==='preparing'&&!pending.pending&&Object.keys(pending.results??{}).length===0&&['BILI_VISION_MODEL_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_UNAVAILABLE','BILI_VISION_UNSUPPORTED'].includes(a.lastFailureCode);if(error.code!=='BILI_VISION_READING_UNAVAILABLE'||!beforePrepare)throw error;value={readingId:a.id,phase:a.state,cells:[],segments:[],progress:{completed:0,total:0},remaining:null,zoomRemaining:null,budgetKnown:false};}return {...(value.reading??value),activityId:a.id,needsReview:a.needsReview===true||!!store.get('reading-v21:'+a.id,null)?.pending,phase:['paused','partial','completed','cancelled','failed'].includes(a.state)?a.state:(value.reading??value).phase,modelReason:a.lastFailureCode??null,results:Object.values(store.get('reading-v21:'+a.id,{results:{}}).results??{}).map(x=>({stepId:x.stepId,from:x.from,to:x.to,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};}
       if(action==='reading.image')return managedCall('video.storyboard.image',{ref:payload.ref});
       if(action==='reading.open')return managedCall('video.storyboard.open',{activityId:a.id});
       if(action==='reading.pause'){const entry=inflight.get(a.id);if(!entry)return {paused:a.state==='paused',activityId:a.id};entry.reason='pause';entry.controller.abort();await entry.promise;return {paused:row(a.id)?.state==='paused',activityId:a.id};}
       if(action==='reading.stop'){const entry=inflight.get(a.id);if(entry){entry.reason='stop';entry.controller.abort();await entry.promise;}await managedCall('video.storyboard.stop');const current=row(a.id);if(current&&!terminal.has(current.state)){current.state='cancelled';current.pauseReason='stop';save(current);settle(current.id,'released');}return {stopped:true};}
-      if(action==='reading.continue'){assert(a.modelConnectionRef===settings().modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','The selected model changed; explicitly start this video again to keep its original request history');assert(['paused','completed','partial'].includes(a.state)&&!a.needsReview&&!store.get('reading-v21:'+a.id,null)?.pending,'BILI_VISION_UNCERTAIN','An unknown model result needs review before resuming');if(payload.confirmed===true){assert(payload.additionalCalls===16,'BILI_VISION_BUDGET_INVALID','Additional budget must be16');await managedCall('video.storyboard.continue',{confirmed:true,additionalCalls:16});}if(a.state!=='paused')return managedCall('video.storyboard.get');store.set('stopped',false);store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch,a.id);}
+      if(action==='reading.continue'){modelPin(a);assert(['paused','completed','partial'].includes(a.state)&&!a.needsReview&&!store.get('reading-v21:'+a.id,null)?.pending,'BILI_VISION_UNCERTAIN','An unknown model result needs review before resuming');if(payload.confirmed===true){assert(payload.additionalCalls===16,'BILI_VISION_BUDGET_INVALID','Additional budget must be16');await managedCall('video.storyboard.continue',{confirmed:true,additionalCalls:16});}if(a.state!=='paused')return managedCall('video.storyboard.get');store.set('stopped',false);store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch,a.id);}
       if(action==='reading.zoom'){
-        assert(a.modelConnectionRef===settings().modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','The selected model changed; explicitly start this video again');
+        modelPin(a);
         assert((a.state==='completed'||a.state==='partial')&&!store.get('reading-v21:'+a.id,null)?.pending,'BILI_VISION_READING_BUSY','Finish the current reading before requesting detail');assert(Number.isFinite(payload.from)&&Number.isFinite(payload.to)&&payload.from>=0&&payload.to>payload.from&&payload.to<=a.video.duration,'BILI_VISION_RANGE_INVALID','Choose a valid range');
-        const c=await context(a.characterId,principal,'bilibili-activity',expectedEpoch);assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This reading belongs to an old life');assert(!inflight.has(a.id),'BILI_VISION_READING_BUSY','This reading already has an active operation');const zoomId=a.id+':zoom:'+randomUUID();const lease=await host.invoke('activity.lease',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,activityId:zoomId,kind:'bilibili',generation:c.generation});const controller=new AbortController(),entry={controller,accountId,reason:null,promise:null};inflight.set(a.id,entry);
-        const operation=(async()=>{try{const result=await runVisualReading({a,c,lease,host,material:a.material,signal:controller.signal,check:()=>check(c,lease,{...a,controlEpoch:expectedEpoch},controller.signal),readRecord:()=>store.get('reading-v21:'+a.id,null),writeRecord:value=>store.set('reading-v21:'+a.id,value),zoom:{from:payload.from,to:payload.to}});return {summary:result.understanding.summary,notes:result.understanding.notes,readingId:a.id};}finally{await host.invoke('activity.finish',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,activityId:zoomId,status:controller.signal.aborted?'cancelled':'completed'}).catch(()=>{});inflight.delete(a.id);}})();entry.promise=operation;return operation;
+        const c=await readingContext(a,principal,expectedEpoch);assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This reading belongs to an old life');assert(!inflight.has(a.id),'BILI_VISION_READING_BUSY','This reading already has an active operation');const zoomId=a.id+':zoom:'+randomUUID();const lease=await host.invoke('activity.lease',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,activityId:zoomId,kind:'bilibili',generation:c.generation});const controller=new AbortController(),entry={controller,accountId,reason:null,promise:null};inflight.set(a.id,entry);
+        const operation=(async()=>{try{const result=await runVisualReading({a,c,lease,host,material:a.material,signal:controller.signal,check:()=>check(c,lease,{...a,controlEpoch:expectedEpoch},controller.signal),...visualCallbacks(a),zoom:{from:payload.from,to:payload.to}});return {summary:result.understanding.summary,notes:result.understanding.notes,readingId:a.id};}finally{await host.invoke('activity.finish',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,activityId:zoomId,status:controller.signal.aborted?'cancelled':'completed'}).catch(()=>{});inflight.delete(a.id);}})();entry.promise=operation;return operation;
       }
       throw fail('BILI_ACTION_INVALID','Unknown reading action');
     }
@@ -536,9 +588,9 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     if(action==='continue'){assert(!store.get('stopped',false),'BILI_STOPPED','Create a new explicit activity after stopping');store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch);}
     if(action==='idle'){store.set('chatActive',false);if(settings().resumeMode!=='idle')return {resumed:false,reason:'manual-resume'};return tick(principal,accountId,false,expectedEpoch);}
     if(action==='tick')return tick(principal,accountId,false,expectedEpoch);
-    if(action==='comment.send'){assert(settings().commentReview!=='preview','BILI_COMMENT_PREVIEW_REQUIRED','Comments are set to preview before posting');return sendComment(payload.activityId,principal,{expectedEpoch});}
-    if(action==='comment.draft')return sendComment(payload.activityId,principal,{expectedEpoch,draftOnly:true});
-    if(action==='comment.post')return postDraft(payload.activityId,principal,{expectedEpoch,text:payload.text??null});
+    if(action==='comment.send'){assert(settings().commentReview!=='preview','BILI_COMMENT_PREVIEW_REQUIRED','Comments are set to preview before posting');return sendComment(payload.activityId,principal,{expectedEpoch,expectedCommentEpoch});}
+    if(action==='comment.draft')return sendComment(payload.activityId,principal,{expectedEpoch,expectedCommentEpoch,draftOnly:true});
+    if(action==='comment.post')return postDraft(payload.activityId,principal,{expectedEpoch,expectedCommentEpoch,text:payload.text??null});
     if(action==='comment.discard')return discardDraft(payload.activityId,principal);
     if(action==='outbox.flush'){await flushOutbox(accountId);const pending=db.prepare("SELECT id FROM bili_outbox WHERE account_id=? AND state='pending'").all(accountId);return {pending:pending.length,errors:pending.map(v=>({id:v.id,error:store.get(`outbox-error:${v.id}`,null)})).filter(v=>v.error)};}
     throw fail('BILI_ACTION_UNKNOWN','Unknown Bilibili action');
@@ -567,12 +619,11 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       // "Wait for me" (resumeMode manual) holds every automatic resume; "resume when idle" continues interruptions.
       if(!manual&&(s.resumeMode!=='idle'||!['user-return','restart','autonomous-disabled'].includes(paused.pauseReason))){blocked={resumed:false,reason:'manual-resume-required',activityId:paused.id};continue;}
       if(paused.scheduleId&&needsConfirmation(getSchedule(paused.scheduleId))){blocked={resumed:false,reason:'target-confirmation-required',scheduleId:paused.scheduleId};continue;}
-      if(paused.visual&&paused.modelConnectionRef!==s.modelConnectionRef){blocked={resumed:false,reason:'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED',activityId:paused.id};continue;}
       if(paused.needsReview){blocked={resumed:false,reason:'uncertain-model-not-retried',activityId:paused.id};continue;}
       try{
-        const c=await context(paused.characterId,principal,'bilibili-activity',expectedEpoch);claimGuard?.();if(c.lifeId!==paused.lifeId||c.operationId!==paused.operationId){retirePaused(paused,'BILI_LIFE_CHANGED');continue;}
+        const c=await readingContext(paused,principal,expectedEpoch);claimGuard?.();if(c.lifeId!==paused.lifeId||c.operationId!==paused.operationId){retirePaused(paused,'BILI_LIFE_CHANGED');continue;}
         eligible(accountId,{...paused,automatic:!manual});if(c.sleeping)return {resumed:false,reason:'waiting-sleep'};
-        paused.contextToken=c.contextToken;paused.generation=c.generation;paused.controlEpoch=expectedEpoch??controlEpoch();paused.connectionRef=settings().connectionRef;paused.modelConnectionRef=settings().modelConnectionRef;if(manual)paused.automatic=false;
+        paused.contextToken=c.contextToken;paused.generation=c.generation;paused.controlEpoch=expectedEpoch??controlEpoch();paused.connectionRef=settings().connectionRef;if(manual)paused.automatic=false;
         const claimed=store.transaction(()=>{claimGuard?.();if(row(paused.id)?.state!=='paused')return false;reserve(paused.id,accountId,paused.day,'watch');clearResumedPause(paused,now());paused.state='selecting';save(paused);if(paused.scheduleId){const parent=getSchedule(paused.scheduleId);if(parent&&parent.state!=='cancelled'){parent.state='running';saveSchedule(parent);}}return true;});
         if(!claimed)return {resumed:false,reason:'activity-already-resuming'};
         const controller=new AbortController(),entry={controller,accountId,reason:null,promise:null};inflight.set(paused.id,entry);entry.promise=perform(paused,c,controller.signal,principal);const result=await entry.promise;
@@ -586,11 +637,11 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       if(schedule.day<clock().day){schedule.state='cancelled';schedule.expired=true;saveSchedule(schedule);continue;}
       if(needsConfirmation(schedule)){blocked={resumed:false,reason:'target-confirmation-required',scheduleId:schedule.id};continue;}
       if(schedule.day!==clock().day||clock().minute<schedule.startMinute||clock().minute>=schedule.endMinute)continue;
-      if(!manual&&schedule.deferredForConnectionRef===s.modelConnectionRef&&schedule.nextEligibleAt>now())continue;
       const predecessor=activities(accountId,['paused','selecting','acquiring-material','understanding']).find(a=>a.scheduleId===schedule.id);
       if(predecessor){if(predecessor.needsReview)blocked={resumed:false,reason:'uncertain-model-not-retried',activityId:predecessor.id};continue;}
       const result=await runSchedule(schedule,principal,accountId,manual,expectedEpoch);
       if(result===null)continue;
+      if(result.state==='deferred'){blocked=result;continue;}
       return result;
     }
     return blocked??{resumed:false,reason:'no-eligible-schedule'};
@@ -665,8 +716,8 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   }
   function tracked(fn){
     if(closing)return Promise.reject(fail('BILI_CLOSED','The plugin is closed'));
-    const epoch=controlEpoch(),operation={promise:null};operation.promise=Promise.resolve().then(()=>fn(epoch,operation));operations.add(operation);
+    const epoch=controlEpoch(),operation={promise:null,commentEpoch:commentEpoch()};operation.promise=Promise.resolve().then(()=>fn(epoch,operation));operations.add(operation);
     operation.promise.then(()=>operations.delete(operation),()=>operations.delete(operation));return operation.promise;
   }
-  return {dispatch:(action,payload={},principal)=>tracked(async epoch=>publicValue(await dispatchInternal(action,payload,principal,epoch))),onHostEvent:event=>tracked((epoch,operation)=>onHostEventInternal(event,epoch,operation)),status:()=>({pluginId:PLUGIN_ID,version:VERSION,contract:'proposal-unconfirmed',requiredCapabilities:REQUIRED_CAPABILITIES,mode:'requires-trusted-social-host'}),close};
+  return {dispatch:(action,payload={},principal)=>tracked(async (epoch,operation)=>publicValue(await dispatchInternal(action,payload,principal,epoch,operation.commentEpoch))),onHostEvent:event=>tracked((epoch,operation)=>onHostEventInternal(event,epoch,operation)),status:()=>({pluginId:PLUGIN_ID,version:VERSION,contract:'proposal-unconfirmed',requiredCapabilities:REQUIRED_CAPABILITIES,mode:'requires-trusted-social-host'}),close};
 }

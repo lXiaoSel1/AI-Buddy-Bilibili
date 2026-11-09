@@ -19,7 +19,7 @@ function fixture(t){
  const host={async invoke(method,payload){
   if(method==='social.context.read'){
    if(payload.purpose==='manage-plugin'){const gate=state.manageGate;state.manageGate=null;if(gate)await gate;return {accountId:state.accountId,permissions:['plugin.manage'],availableCharacters:[{id:'alpha',label:'Alpha'},{id:'beta',label:'Beta'}],managedConnections:catalog};}
-   return {contextToken:'context',accountId:state.accountId,characterId:payload.characterId,personaId:'persona',lifeId:state.life,operationId:'operation',generation:1,sleeping:state.sleeping,interests:['海洋']};
+   return {connectionRef:payload.modelConnectionRef??'model',contextToken:'context',accountId:state.accountId,characterId:payload.characterId,personaId:'persona',lifeId:state.life,operationId:'operation',generation:1,sleeping:state.sleeping,interests:['海洋']};
   }
   if(method==='activity.lease')return {leaseId:'lease:'+payload.activityId,generation:1};
   if(method==='activity.check')return {valid:true,characterId:payload.characterId,lifeId:payload.lifeId,operationId:payload.operationId,generation:payload.generation};

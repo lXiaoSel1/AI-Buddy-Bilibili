@@ -18,7 +18,7 @@ function fixture(){
       if(payload.purpose==='manage-plugin'){if(state.manageHook)await state.manageHook(payload);return {contextToken:'manage',accountId:'account',permissions:['plugin.manage'],managedConnections:[]};}
       if(payload.purpose==='plugin-background')return {contextToken:'background',accountId:'account',permissions:['plugin.activity']};
       if(state.contextHook)await state.contextHook(payload);
-      return {contextToken:'social',accountId:'account',characterId:payload.characterId,personaId:'persona',lifeId:state.life??'life',operationId:'operation',generation:1,sleeping:false};
+      return {connectionRef:payload.modelConnectionRef??'model',contextToken:'social',accountId:'account',characterId:payload.characterId,personaId:'persona',lifeId:state.life??'life',operationId:'operation',generation:1,sleeping:false};
     }
     if(method==='activity.lease')return {leaseId:'lease:'+payload.activityId,generation:1};
     if(method==='activity.check'){state.checks++;if(state.checkHook)await state.checkHook(payload,state.checks);return {valid:true,characterId:payload.characterId,lifeId:payload.lifeId,operationId:payload.operationId,generation:payload.generation};}
@@ -80,7 +80,7 @@ test('BUG-RETURN-CONTEXT: returning user wins over an older now request still wa
 
 test('BUG-SETTINGS-AWAIT: changing the model during a host guard cannot start a new request under an old lease',async()=>{
   const f=fixture(),started=deferred(),release=deferred();let pending;try{
-    await f.configure();f.state.checkHook=async(_p,n)=>{if(n===3){started.resolve();await release.promise;}};pending=f.call('now',{characterId:'alpha'});await started.promise;await f.call('settings.update',{modelConnectionRef:'different-model'});release.resolve();await pending;assert.equal(f.state.models,0);
+    await f.configure();f.state.checkHook=async(_p,n)=>{if(n===3){started.resolve();await release.promise;}};pending=f.call('now',{characterId:'alpha'});await started.promise;await f.call('settings.update',{connectionRef:'different-account'});release.resolve();await pending;assert.equal(f.state.models,0);
   }finally{release.resolve();await Promise.allSettled([pending].filter(Boolean));await f.close();}
 });
 

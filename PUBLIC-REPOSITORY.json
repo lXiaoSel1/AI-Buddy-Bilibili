@@ -4,7 +4,7 @@
   "plugin": "bilibili-companion",
   "repository": "lXiaoSel1/AI-Buddy-Bilibili",
   "packageName": "@ai-buddy/bilibili-companion",
-  "version": "2.0.11",
+  "version": "2.0.14",
   "minimumHost": "2.0.2",
   "node": "24.21.0",
   "npm": "11.19.0",

@@ -18,7 +18,7 @@ function fixture(options={}){
     if(method==='social.context.read'){
       if(payload.purpose==='plugin-background')return {accountId:'account-1',managedConnections:catalog,permissions:['plugin.activity']};
       if(payload.purpose==='manage-plugin')return {accountId:'account-1',permissions:['plugin.manage'],availableCharacters:[{id:'alpha',label:'甲角色'},{id:'beta',label:'乙角色'}],managedConnections:catalog};
-      return {contextToken:`context:${payload.characterId}`,accountId:'account-1',characterId:payload.characterId,personaId:'persona-1',lifeId:'life-1',operationId:'operation-1',generation:1,sleeping:false};
+      return {connectionRef:payload.modelConnectionRef??'managed-model',contextToken:`context:${payload.characterId}`,accountId:'account-1',characterId:payload.characterId,personaId:'persona-1',lifeId:'life-1',operationId:'operation-1',generation:1,sleeping:false};
     }
     if(method==='activity.lease'){if(state.leases.get(payload.activityId)==='ended')throw Object.assign(Error('ended'),{code:'BUDDY_SOCIAL_DENIED'});state.leases.set(payload.activityId,'active');return {leaseId:`lease:${payload.activityId}`,generation:1};}
     if(method==='activity.check')return {valid:true,characterId:payload.characterId,lifeId:payload.lifeId,operationId:payload.operationId,generation:payload.generation};

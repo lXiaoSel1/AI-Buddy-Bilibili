@@ -28,7 +28,7 @@ for(const lang of ['zh-CN','en']){
   const text=page.textOf(feedback(page));assert.ok(text.includes(en?'has not started':'尚未开始'));assert.ok(text.includes(en?'Watch now again':'再次点「现在看」'));assert.equal(page.count('now'),1);assert.equal(button(page,watch).props.disabled,false);
  });
  for(const [state,reason,expected] of [
-  ['paused','BILI_VISION_MODEL_UNSUPPORTED',en?'Image input':'支持图片'],
+  ['paused','BILI_VISION_MODEL_UNSUPPORTED',en?'support images':'支持图片'],
   ['failed','BILI_SELECTION_EMPTY',en?'No video':'没找到可看'],
   ['partial',null,en?'Partly':'只完成部分'],
   ['deferred','off-peak',en?'not started':'尚未开始'],

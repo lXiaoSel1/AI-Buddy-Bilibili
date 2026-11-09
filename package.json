@@ -1,6 +1,6 @@
 {
   "name": "ai-buddy-bilibili-companion-source",
-  "version": "2.0.11",
+  "version": "2.0.14",
   "private": true,
   "type": "module",
   "scripts": {

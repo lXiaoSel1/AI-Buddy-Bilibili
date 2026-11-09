@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "deterministic-public-source-export",
   "plugin": "bilibili-companion",
-  "version": "2.0.11",
-  "inventoryHash": "3e4197b202c41fa8743c02faabe967aede919e21bd4b27ad66466a78a39f5f23",
+  "version": "2.0.14",
+  "inventoryHash": "2879051e9f4f3ae1c478e708b7e1204ccc3f5d4f4b49b5c4d0c09eff1a370734",
   "files": [
     {
       "path": ".gitattributes",
@@ -22,43 +22,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 7213,
-      "sha256": "f2919b50ec6e49b5a4c46b24d36b93c7e7c3e7cebea78dda0cfe4cd4591a458d"
-    },
-    {
-      "path": "LICENSE.md",
-      "bytes": 13912,
-      "sha256": "e6678c4b6c1d0aacc5f99e6c1feac9d2a8ed348f45c82183fc5a6bf1b2482005"
-    },
-    {
-      "path": "PUBLIC-REPOSITORY.json",
-      "bytes": 323,
-      "sha256": "81d9c3177e7938cb99009ead4fc9ae46e6f3ca99f4ec31d24a8a23fbcfc01a42"
-    },
-    {
-      "path": "README.md",
-      "bytes": 6754,
-      "sha256": "613bc4b4316d58bc748708ef2061f08889a99b23e08d0d1625123a569384d78c"
-    },
-    {
-      "path": "TEST-SCOPE.json",
-      "bytes": 5682,
-      "sha256": "13821c81b55bb5e8e3a682db291b6cda5020640ff8e5b891739fa1330cf30275"
-    },
-    {
-      "path": "THIRD-PARTY-NOTICES.md",
-      "bytes": 1828,
-      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
-    },
-    {
-      "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 1596,
-      "sha256": "b861022a8abd5e3b0f6f2c19cd3064865f29f19832d48970683af43736835f28"
-    },
-    {
-      "path": "contracts/README.md",
-      "bytes": 681,
-      "sha256": "c0fc139e9b901d376f7f4cacf7b6c323a0e13e99f595aa2005d1cad7304cd418"
+      "bytes": 8513,
+      "sha256": "f20cff96bb45cfd05240c746b4853bfac735f107478df3707f380a3523cc1428"
     },
     {
       "path": "contracts/proposal.json",
@@ -66,14 +31,64 @@
       "sha256": "f8c4b4572d1cba8e91b1a43b8cd6a0aba40df12136715e27254e513816f6743d"
     },
     {
+      "path": "contracts/README.md",
+      "bytes": 681,
+      "sha256": "c0fc139e9b901d376f7f4cacf7b6c323a0e13e99f595aa2005d1cad7304cd418"
+    },
+    {
       "path": "docs/DEVELOPMENT.md",
       "bytes": 2876,
       "sha256": "529c066ff65f89a1b23267dd7f7942b45bacc6ac596d4f1f35d6f7a9ab74e627"
     },
     {
+      "path": "docs/images/bili-comment-settings.webp",
+      "bytes": 83342,
+      "sha256": "21784536735c81a2be04587310178ff7d182f6567a8fd2cdb9438cc051d1c063"
+    },
+    {
+      "path": "docs/images/bili-hero-storyboard-reading.webp",
+      "bytes": 105704,
+      "sha256": "151b98994ad80692971dcb916b6b18aa6434a98711c7c9112da6a9ba50b3f36f"
+    },
+    {
+      "path": "docs/images/bili-history.webp",
+      "bytes": 42626,
+      "sha256": "a537ad4db788ed328bfa440ee4248d3b80fa7b6dfd426ec0d7dac12281fd514d"
+    },
+    {
+      "path": "docs/images/bili-settings.webp",
+      "bytes": 73790,
+      "sha256": "fb01cb635c2e8334a3debc2b125ffe368d27d593c228ce1eb2b4758c7253cda6"
+    },
+    {
+      "path": "docs/images/bili-step-1-install-permissions.webp",
+      "bytes": 57692,
+      "sha256": "c06a5ac2d678885b364a2991704114ca2bd3a9835e51c4505a24fe7e2ac11aa3"
+    },
+    {
+      "path": "docs/images/bili-step-2-connect-account.webp",
+      "bytes": 35046,
+      "sha256": "cca01b905e7ccf1dc343a305e0a0bf4ed350c2ef241d189960eb32a93f298280"
+    },
+    {
+      "path": "docs/images/bili-step-3-plan-preview.webp",
+      "bytes": 97638,
+      "sha256": "a10d5ff49dee36fe806ce39c39fdd60285d59e0b19ecd7c9586e260b91733d37"
+    },
+    {
+      "path": "docs/images/bili-watch-schedule.webp",
+      "bytes": 62276,
+      "sha256": "df52a6be4fc012afec3a6ad055f88ffa23806cf97b3871186c4332b34a7729ce"
+    },
+    {
       "path": "docs/VALIDATION.md",
       "bytes": 1574,
       "sha256": "2e0212e86f64d9847cb0fbfb4a90d5c5dde3681f2f1cf72586ddca0199cab5f1"
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 13912,
+      "sha256": "e6678c4b6c1d0aacc5f99e6c1feac9d2a8ed348f45c82183fc5a6bf1b2482005"
     },
     {
       "path": "licenses/upstream/LICENSE.md",
@@ -83,22 +98,27 @@
     {
       "path": "package-lock.json",
       "bytes": 15098,
-      "sha256": "d3857c3fcca22abb7a5c5bee2d54204445c3a4ee3af06442a00a6e0815e637e8"
+      "sha256": "aa4433eee07c03e915b505280c3ef5d9d9d293865049c1a20052429c44cb7623"
     },
     {
       "path": "package.json",
       "bytes": 492,
-      "sha256": "4e622716a542c640379ee54152ded4fd65e55ae3122915ad9fb48a2494026c0e"
+      "sha256": "f1f47461a5449afd52555d9d635e9dbc391f41d3e3602d2de214e807a34fd954"
     },
     {
       "path": "plugins/bilibili-companion/CHANGELOG.md",
-      "bytes": 7213,
-      "sha256": "f2919b50ec6e49b5a4c46b24d36b93c7e7c3e7cebea78dda0cfe4cd4591a458d"
+      "bytes": 8513,
+      "sha256": "f20cff96bb45cfd05240c746b4853bfac735f107478df3707f380a3523cc1428"
     },
     {
       "path": "plugins/bilibili-companion/COMPATIBILITY.md",
       "bytes": 3441,
       "sha256": "d97b5523b24a165ccb863c48fa770eb0d20713d1b6ac9b4407472d4bd34b13ce"
+    },
+    {
+      "path": "plugins/bilibili-companion/cordis.patch.yml",
+      "bytes": 91,
+      "sha256": "196aa2a7e58c18ec021067cdfbfe281e4073e7e6e87cedea23d0697423724379"
     },
     {
       "path": "plugins/bilibili-companion/DATA-SCHEMA.json",
@@ -116,9 +136,14 @@
       "sha256": "e6678c4b6c1d0aacc5f99e6c1feac9d2a8ed348f45c82183fc5a6bf1b2482005"
     },
     {
+      "path": "plugins/bilibili-companion/package.json",
+      "bytes": 1740,
+      "sha256": "b2c9b526f0a1413e0a0c56ab7555ca73e67edaf9a37f796fcc4e90464cd6eb01"
+    },
+    {
       "path": "plugins/bilibili-companion/README.md",
-      "bytes": 6754,
-      "sha256": "613bc4b4316d58bc748708ef2061f08889a99b23e08d0d1625123a569384d78c"
+      "bytes": 7814,
+      "sha256": "2f16d32269c2e73392bc8d91983f264a3ef556fa9114290a99afb8dd8c575d6e"
     },
     {
       "path": "plugins/bilibili-companion/SETTINGS.schema.json",
@@ -126,29 +151,14 @@
       "sha256": "e1720351c73e1f443333555df4250e57bc569f771288f7ed3c0a3d871a5d84d6"
     },
     {
-      "path": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md",
-      "bytes": 1828,
-      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
-    },
-    {
-      "path": "plugins/bilibili-companion/cordis.patch.yml",
-      "bytes": 91,
-      "sha256": "196aa2a7e58c18ec021067cdfbfe281e4073e7e6e87cedea23d0697423724379"
-    },
-    {
-      "path": "plugins/bilibili-companion/package.json",
-      "bytes": 1740,
-      "sha256": "0caa8b6e643b409feca9d407e06e4d39a8a5c3b2821cfb970ce9363d789946aa"
-    },
-    {
       "path": "plugins/bilibili-companion/src/client/index.mjs",
-      "bytes": 91428,
-      "sha256": "d322381b00483cc103d4dbdb8118a5f2f25960f2601702dc6428c13bc9e2ed20"
+      "bytes": 93527,
+      "sha256": "700aaa69e5bf36c39db2a0f77bde7abf16ead8a57fdf9413702599fbb7bf4549"
     },
     {
       "path": "plugins/bilibili-companion/src/client/reading.mjs",
-      "bytes": 18984,
-      "sha256": "146f8c0ff591e38be9bd041184683182ec85d0eb2d6c1beafd056c9804b585e8"
+      "bytes": 19166,
+      "sha256": "1ceab1f47c5c3a26b913b551c090ecccb9e4d94eb3b5db772b3986cb0f5a1534"
     },
     {
       "path": "plugins/bilibili-companion/src/client/selection.mjs",
@@ -163,12 +173,12 @@
     {
       "path": "plugins/bilibili-companion/src/defaults.mjs",
       "bytes": 679,
-      "sha256": "68dda37f7761839657ad6993e6abf054ebe6707ff0fba3a0c162b307e33d781d"
+      "sha256": "9acb2ea499d2ba2a688e7fa5c2212029abbe78fa07a48f842bb345c6eb2d56fa"
     },
     {
       "path": "plugins/bilibili-companion/src/full-reading.mjs",
-      "bytes": 11938,
-      "sha256": "02768a3898831d569d6176de018fd11827db2563ae4cf8eb99094d389e9323d9"
+      "bytes": 15173,
+      "sha256": "78840e2fd5a918011bd92504754f3603413a51252e644a45cc934fa21f5b873c"
     },
     {
       "path": "plugins/bilibili-companion/src/http-platform.mjs",
@@ -179,6 +189,11 @@
       "path": "plugins/bilibili-companion/src/index.mjs",
       "bytes": 554,
       "sha256": "7bbfc20a0a0ad1f17e63c53842ae55fa66060d3892615a6ed6af47115da40c28"
+    },
+    {
+      "path": "plugins/bilibili-companion/src/model-response.mjs",
+      "bytes": 771,
+      "sha256": "456c6933feb41fd8ea3674c7c289b3c8367b72b064bc01414f7915284614d9d8"
     },
     {
       "path": "plugins/bilibili-companion/src/plan-content.mjs",
@@ -202,13 +217,13 @@
     },
     {
       "path": "plugins/bilibili-companion/src/service.mjs",
-      "bytes": 93934,
-      "sha256": "372e2e95a30f5b53921bbd08f5c15ee18f849932558597e87e5a6c4cdd5da672"
+      "bytes": 101009,
+      "sha256": "e6f9dd06b67ffde340526eed2c181766274648bc9e6550811c0bdae03d78d2a1"
     },
     {
       "path": "plugins/bilibili-companion/src/visual-reading.mjs",
-      "bytes": 9763,
-      "sha256": "742c20b12d6e06bb55a20700b4cac7a69574155fa8ceda42b867c0ceb35c7dfd"
+      "bytes": 11817,
+      "sha256": "5d2bbec9d18eea2ead81ad4f2359f688941ae022b8e92e1a2259497e99293ee0"
     },
     {
       "path": "plugins/bilibili-companion/test/account-refresh-r11.test.mjs",
@@ -222,18 +237,48 @@
     },
     {
       "path": "plugins/bilibili-companion/test/audit-owner-close.test.mjs",
-      "bytes": 5327,
-      "sha256": "60c2c3ebd326e16f9e37f82c7ccfcf7d205064f91c4cdc6eedf7c171beb58187"
+      "bytes": 5377,
+      "sha256": "c4b2dfb6edf3fcdf72ef9729018b93055e1b8046ff1b8090bbad4ca4411b93f7"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/batch-lifecycle-r3.test.mjs",
+      "bytes": 10568,
+      "sha256": "8e91c491fc6dc12b0fb6346ff93ddd2c54c65feec451c5bdce1fcee2b8e1140f"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/batch-model-wrappers-r3.test.mjs",
+      "bytes": 3649,
+      "sha256": "9eaebb1329fa5c585e1f52fa0dda9070cd1d65236599fd2e932d5f503d7a94eb"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/batch-visual-wrappers-r3.test.mjs",
+      "bytes": 2653,
+      "sha256": "0897a21dd01bcb4c93c05eed3d63856401389eb19213b1b53f5f93c7e6b71995"
     },
     {
       "path": "plugins/bilibili-companion/test/bug-regressions.test.mjs",
-      "bytes": 19713,
-      "sha256": "58676d7516f355fbec72075e2da4bacfc2f18144ea3d85b24ee4eb57d489b4d4"
+      "bytes": 19760,
+      "sha256": "b164bdf05812ce365abaf3499470f834143d8691fc066236e9e14f8b3b2db753"
     },
     {
       "path": "plugins/bilibili-companion/test/embedded-page.test.mjs",
       "bytes": 7447,
       "sha256": "e9ddf33aace5d9918fc7fbb71be2a42e13c4d22a67bb6d17473c44fb5f065e90"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/r3-lifecycle.mjs",
+      "bytes": 8381,
+      "sha256": "683feb8a8852c5335097eac72f01d045d0df6339791eb76a45a9faf968e59bc4"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/r3-service.mjs",
+      "bytes": 6226,
+      "sha256": "f642a2137eaff6fe0875432aa59147fd381667b6890f39765a9733d2fde56555"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/fixtures/r3-visual.mjs",
+      "bytes": 2644,
+      "sha256": "121b8a465fbced067cacb8a0d70cc89669ba047d37df5a288550fda9b5d6bf13"
     },
     {
       "path": "plugins/bilibili-companion/test/fixtures/synthetic-video-material.json",
@@ -242,8 +287,8 @@
     },
     {
       "path": "plugins/bilibili-companion/test/full-reading-page.test.mjs",
-      "bytes": 9118,
-      "sha256": "ab4861f616db6c356f6559f4dd32d1cfae0b4f45486215ea7ef3d26e52db9f57"
+      "bytes": 10050,
+      "sha256": "cbe6a86995544497cc59faacb600037e6982d2aa2d6e66702ee4755bc71aa2f7"
     },
     {
       "path": "plugins/bilibili-companion/test/full-reading-runner.test.mjs",
@@ -277,13 +322,13 @@
     },
     {
       "path": "plugins/bilibili-companion/test/plan-target-r11.test.mjs",
-      "bytes": 15375,
-      "sha256": "4738b0906572ee61ce4a5866b0507a4550e6bfe9d943d419c6926dbca5d7998a"
+      "bytes": 15425,
+      "sha256": "9db0ab8dd3cd47e487282e09b09b1cef6dd9a0e4139bc20f8792894b45ed547b"
     },
     {
       "path": "plugins/bilibili-companion/test/plans-settings-202.test.mjs",
-      "bytes": 10507,
-      "sha256": "27a63738b95e87f3b3ee74d5be360fc9db3188b5e6fd9cb96c808c82292ba111"
+      "bytes": 10565,
+      "sha256": "d120bf781acab210b6ba2826579ddb5b1151838b4b6008306a710ef468a0b32d"
     },
     {
       "path": "plugins/bilibili-companion/test/prompt-budget.test.mjs",
@@ -297,8 +342,8 @@
     },
     {
       "path": "plugins/bilibili-companion/test/reading-page.test.mjs",
-      "bytes": 8061,
-      "sha256": "737a1c0fca4ff3704bf80376efceabdfaadb6050e33a5c2ea5971702d274d7c0"
+      "bytes": 8737,
+      "sha256": "d84f7fbc8572235c475c325f2509985fbcff3685200917dcdd88694b28d9e868"
     },
     {
       "path": "plugins/bilibili-companion/test/reading-recovery-page.test.mjs",
@@ -307,13 +352,18 @@
     },
     {
       "path": "plugins/bilibili-companion/test/reading-resume-service.test.mjs",
-      "bytes": 29103,
-      "sha256": "dacd6d376c01c586001bdf44680e0be02f3fd20e1f6b96305c3f0154ab746db2"
+      "bytes": 41539,
+      "sha256": "85e4306e510c70659031de47954303c05d3e6fcd84c7bbcc8a34dafa222f359b"
     },
     {
       "path": "plugins/bilibili-companion/test/receipt-recovery.test.mjs",
-      "bytes": 5465,
-      "sha256": "e3d40af345389417172677658fadc979517633210f5ebc36ea39785f5c8b5bc3"
+      "bytes": 6822,
+      "sha256": "7e5b80e1915e180830dcf9c28e493af1067119d401ba611400bb51523aa7cdab"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/role-model-page-r1.test.mjs",
+      "bytes": 5952,
+      "sha256": "7eab892dff77af697f03bb8f9a3c040da0bb09195a5be5a018d1086ec73a9336"
     },
     {
       "path": "plugins/bilibili-companion/test/selection-policy.test.mjs",
@@ -322,13 +372,18 @@
     },
     {
       "path": "plugins/bilibili-companion/test/service.test.mjs",
-      "bytes": 38163,
-      "sha256": "86d84f9226c1444df7bb246bac23b739059443f3aac04fc54e313b01c41aa409"
+      "bytes": 39667,
+      "sha256": "f1be3e7a293f211d19282f2b67e19c77f069aca9e186a8150ab5a573a3786a65"
+    },
+    {
+      "path": "plugins/bilibili-companion/test/ui-navigation-r3.test.mjs",
+      "bytes": 8624,
+      "sha256": "33fd425160436bbfe3d6af91d312f8fd98bfb3dbc070894a00489fde3972b6a1"
     },
     {
       "path": "plugins/bilibili-companion/test/visual-legacy-package-compat.test.mjs",
-      "bytes": 9092,
-      "sha256": "03c6e72eb5d1ecfab8c6b3147fabcac65bbd53e91253f190174529e5c3ad9905"
+      "bytes": 9114,
+      "sha256": "cdc95afda802ab354a76bbf161ba50105ad0492c9a6cd32c3ff1695fe986c8ab"
     },
     {
       "path": "plugins/bilibili-companion/test/visual-part-duration.test.mjs",
@@ -342,18 +397,38 @@
     },
     {
       "path": "plugins/bilibili-companion/test/visual-service.test.mjs",
-      "bytes": 9759,
-      "sha256": "11b84ea254f02e725ef4b2a37f3a32cd900274e914098565f756c68e4b8b5f13"
+      "bytes": 9750,
+      "sha256": "1045c89eafbc37b1c27ef554a86eda80fdb46383d412e51aaa8a49d92f347568"
     },
     {
       "path": "plugins/bilibili-companion/test/watch-feedback.test.mjs",
-      "bytes": 8827,
-      "sha256": "22add069e04890dd0485af7a6db87cd29b0b9c2e3b74c0cc55f656c33831bf47"
+      "bytes": 8830,
+      "sha256": "6c99a5c0c74d071282c00baab1192f43a00284bb6ec69273bd60bd57ed18254f"
     },
     {
       "path": "plugins/bilibili-companion/test/watch-state.test.mjs",
       "bytes": 1726,
       "sha256": "a7f3a6723f1fe735a4355f8c3d2cf7b384673ef7d872af6b7374bdfa34010452"
+    },
+    {
+      "path": "plugins/bilibili-companion/THIRD-PARTY-NOTICES.md",
+      "bytes": 1828,
+      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
+    },
+    {
+      "path": "PUBLIC-REPOSITORY.json",
+      "bytes": 323,
+      "sha256": "ee00d78400d7074ea7e39cafcebbefa8c0caea88f1706b082a46df77d92eedcf"
+    },
+    {
+      "path": "README.md",
+      "bytes": 21931,
+      "sha256": "a36cb2dc56f259ba6302a091fc64eb94f578453d7f214bafac4ff168fe33fa82"
+    },
+    {
+      "path": "RELEASE-NOTES-2.0.14.md",
+      "bytes": 1168,
+      "sha256": "ad3fca773b5ee4e410b05850c68c0344923edee295322bb8e092d908030a231f"
     },
     {
       "path": "scripts/build.mjs",
@@ -431,6 +506,11 @@
       "sha256": "cd6234158c072d193aebdf6bd5a0302a4966f6dffe8a5e24b418925c0606e427"
     },
     {
+      "path": "TEST-SCOPE.json",
+      "bytes": 5682,
+      "sha256": "13821c81b55bb5e8e3a682db291b6cda5020640ff8e5b891739fa1330cf30275"
+    },
+    {
       "path": "test/account-services.test.mjs",
       "bytes": 2801,
       "sha256": "e0e4c88b0face95394b71cd2f55ad3ba95c7db15bae1d35340cbc4da38b2defc"
@@ -489,6 +569,16 @@
       "path": "test/store.test.mjs",
       "bytes": 3900,
       "sha256": "497ffae91958a62ab5045f2cc66f277252f9b6818b7441ddd71006265b895047"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 1596,
+      "sha256": "b861022a8abd5e3b0f6f2c19cd3064865f29f19832d48970683af43736835f28"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "bytes": 1828,
+      "sha256": "2c46d7024760b2cceb0da794dd7c031791c554614752408678eae4c31c736d59"
     }
   ],
   "origins": [

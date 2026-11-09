@@ -11,7 +11,7 @@
 
 [AI 酱本体](https://github.com/lXiaoSel1/AI-Buddy) · **B站陪伴**（本仓库） · [QQ连接](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [一起玩牌](https://github.com/lXiaoSel1/AI-Buddy-Card-Games)
 
-**当前版本：2.0.11** · 需要 [AI 酱](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 或更新版本，建议用 2.0.7：更早的版本在部分线路上采集不到原视频分镜。这是 AI 酱的官方插件，在 AI 酱的 **扩展中心** 里安装，不用单独下载。
+**当前版本：2.0.14** · 需要 [AI 酱](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 或更新版本，建议用 2.0.7：更早的版本在部分线路上采集不到原视频分镜。这是 AI 酱的官方插件，在 AI 酱的 **扩展中心** 里安装，不用单独下载。
 
 让 AI 酱里的角色陪你看 B站视频。你给一个视频（或者让她按兴趣挑），她先列出完整的阅读计划，你确认后，她按固定间隔抽取的原视频画面和平台字幕把视频读完，写下自己的观察和观看笔记，之后聊天时也会记得。还可以预约每天的观看时间。发评论默认关闭，要另外授权。
 
@@ -53,7 +53,7 @@
 
 <img src="docs/images/bili-settings.webp" width="800" alt="B站陪伴的设置页：观看、画面阅读、完整精读参数、评论四栏（截图里是插件默认值）">
 
-设置页分为 观看、画面阅读、完整精读参数、评论，以及最下面的 账号和模型。截图里显示的就是默认值：
+设置页分为 观看、画面阅读、完整精读参数、评论，以及最下面的账号与参与角色。截图里显示的就是默认值：
 
 | 选项 | 默认 |
 |---|---|
@@ -65,7 +65,7 @@
 | 预约自动阅读画面 | 关。新视频先生成完整计划等你确认 |
 | 抽帧间隔 / 每段阅读时长 | 0.5 秒 / 6 秒，每张拼图最多 12 帧；改了只影响新任务 |
 | 评论 | 不发表；每天最多发 3 条（按账号算） |
-| 写感想用的模型、默认参与角色 | 在「账号和模型」里选 |
+| 阅读与感想模型、默认参与角色 | 新观看使用参与角色绑定的聊天连接；在设置里选参与角色 |
 
 额度按账号算，几位角色共用，不会因为多加角色而变多。时间按应用时区，当天有效，过期不补；她睡着时会等她醒来。
 
@@ -110,7 +110,7 @@
 
 ## 技术说明
 
-插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.11，需要 AI Buddy >= 2.0.2。这一版把已经验收的 2.0.10 功能代码整理成独立的源码仓库，桥接版本、合同、权限和数据格式不变；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.14，需要 AI Buddy >= 2.0.2。这一版沿用本机 2.0.13 的已验收功能，桥接版本、合同、权限和数据格式不变；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 开发需要固定的 Node 24.21.0、npm 11.19.0 和 esbuild 0.28.2，在新的 checkout 里运行：
 
@@ -138,7 +138,7 @@ npm run repro
 
 [AI Buddy app](https://github.com/lXiaoSel1/AI-Buddy) · **Bilibili Companion** (this repository) · [QQ Connect](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [Card Games](https://github.com/lXiaoSel1/AI-Buddy-Card-Games)
 
-**Version 2.0.11** · requires [AI Buddy](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 or later. Use 2.0.7 if you can: earlier versions can fail to get the storyboard from the original video on some CDN routes. It is an official AI Buddy plugin, installed from AI Buddy's **Extensions** center; there is nothing to download separately.
+**Version 2.0.14** · requires [AI Buddy](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 or later. Use 2.0.7 if you can: earlier versions can fail to get the storyboard from the original video on some CDN routes. It is an official AI Buddy plugin, installed from AI Buddy's **Extensions** center; there is nothing to download separately.
 
 A character in AI Buddy watches Bilibili videos with you. Give her a video (or let her pick one by interest). She first lays out the full reading plan, and after you confirm, she reads the video from frames sampled at a fixed interval from the original video plus the platform subtitles, then writes her own observations and viewing notes, which she remembers in later chats. Daily viewing times can be scheduled. Comments are off by default and need separate permission. The pictures above show the Chinese interface with demo data.
 
@@ -188,8 +188,16 @@ It uses unofficial Bilibili interfaces, which may change. A full real-account, r
 
 ### Technical notes
 
-Package `@ai-buddy/bilibili-companion` 2.0.11, requires AI Buddy >= 2.0.2. This release turns the accepted 2.0.10 functionality into an independent source repository with the same bridge version, contract, permissions and data format; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md).
+Package `@ai-buddy/bilibili-companion` 2.0.14, requires AI Buddy >= 2.0.2. This release publishes the accepted local 2.0.13 behavior with the same bridge version, contract, permissions and data format; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ### License and third parties
 
 Source-available under the Apache License 2.0 with the Commons Clause ([LICENSE.md](LICENSE.md)): free to use, modify and share, but not to sell without written permission from lXiaoSel1. Under the OSI definition this is source-available, not open source. The plugin bundles no third-party artwork, video content, accounts or runtime components; FFmpeg is downloaded by AI Buddy from a pinned Gyan release (GPLv3) and is not mirrored here. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The README screenshots come from an independent demo profile: account, video details and observations are demo data, the storyboard frames come from AI Buddy's own promo video, and no real account or model was used. This plugin is not affiliated with Bilibili.
+
+## 2.0.14
+
+沿用已验收的本机 2.0.13：新观看按角色聊天连接固定阅读、汇总和感想，集中修复的执行失效、模型包装和页面导航处理一并公开。旧计划、未知回执、权限、合同与数据格式保留。本轮仅使用新版本及正式下载身份，不增加业务行为。
+
+Publishes the accepted local 2.0.13 behavior: new viewings pin the character chat connection for reading, consolidation and reflection, including the batch lifecycle, response-wrapper and navigation fixes. Existing plans, unknown receipts, capabilities, contract and schema are preserved. This preparation changes only release identifiers and documentation.
+
+[2.0.14 发行说明 / Release notes](RELEASE-NOTES-2.0.14.md)

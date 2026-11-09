@@ -1,8 +1,12 @@
 # AI Buddy Bilibili / B站陪伴
 
-`@ai-buddy/bilibili-companion` **2.0.11** · AI Buddy **>= 2.0.2** · source-available: Apache 2.0 + Commons Clause.
+2.0.14：新阅读、整理和感想使用观看角色的聊天连接；不再单独选择感想模型。旧阅读保留原连接和进度。缺少图片能力时明确暂停，不自动换模型。
 
-让角色按你确认的计划读取 B站视频帧与字幕，保存观看笔记，并在另行授权后发表评论。此补丁把已接受的 2.0.10 功能代码整理为独立源码和发布仓库；桥接版本、合同、权限和数据格式保持原值。
+Version 2.0.14 follows each viewing character's chat connection for new readings and reflections. Existing plans keep their pinned connection; image capability failures do not switch models.
+
+`@ai-buddy/bilibili-companion` **2.0.14** · AI Buddy **>= 2.0.2** · source-available: Apache 2.0 + Commons Clause.
+
+让角色按你确认的计划读取 B站视频帧与字幕，保存观看笔记，并在另行授权后发表评论。此版本沿用本机 2.0.13 的已验收功能；桥接版本、合同、权限和数据格式保持原值。
 
 ## 安装与账号
 
@@ -32,10 +36,16 @@
 
 ## English
 
-AI Buddy Bilibili 2.0.11 reads source video frames and acquired timed subtitles through a frozen, explicitly confirmed plan. It requires AI Buddy >= 2.0.2, a connected Bilibili account and a suitable user-selected model. AI Buddy adds no service signup; users scan the official platform login themselves. Installing, updating or scanning alone never starts watching, comments or model requests. Commenting needs separate consent. Credentials stay host-managed.
+AI Buddy Bilibili 2.0.14 reads source video frames and acquired timed subtitles through a frozen, explicitly confirmed plan. It requires AI Buddy >= 2.0.2, a connected Bilibili account and a suitable user-selected model. AI Buddy adds no service signup; users scan the official platform login themselves. Installing, updating or scanning alone never starts watching, comments or model requests. Commenting needs separate consent. Credentials stay host-managed.
 
 New plans default to 0.5-second source sampling, 6-second windows and at most 12 frames per sheet, with explicit part selection. Every required image and acquired subtitle character needs a successful host receipt. Capacity handling splits batches/pages; unknown submissions are not replayed. Failed, paused and review-needed states preserve original sources and checkpoints. An FFmpeg-only kit supplies no ASR: missing dialogue remains unknown. Receipt coverage does not establish perfect semantic understanding or official API stability. Model image/context/provider metadata and real external behavior remain bounded by the configured provider and host.
 
-Autonomous watching and comments are off by default; limits start at 5 watches and 3 comments per day with one active task. Uninstall retains history by default. The accepted integrated baseline had core 2825 pass / 4 skip and social 476 pass / 4 skip, three synthetic scenes in real Electron, and a formal install with both plugins loaded. These are not new exported-suite results or accepted live-platform/model roundtrips. This patch retains 2.0.10 functional behavior and changes distribution, documentation and version identifiers.
+Autonomous watching and comments are off by default; limits start at 5 watches and 3 comments per day with one active task. Uninstall retains history by default. The accepted integrated baseline had core 2825 pass / 4 skip and social 476 pass / 4 skip, three synthetic scenes in real Electron, and a formal install with both plugins loaded. These are not new exported-suite results or accepted live-platform/model roundtrips. This release retains accepted local 2.0.13 behavior and changes distribution, documentation and version identifiers.
 
 The project is source-available under Apache 2.0 **with Commons Clause**, subject to the unchanged `LICENSE.md`; see `THIRD-PARTY-NOTICES.md`. It bundles no third-party artwork, video content, accounts or runtime components and does not claim all host artwork/reference rights are cleared. [Host](https://github.com/lXiaoSel1/AI-Buddy) · [Extension directory](https://github.com/lXiaoSel1/AI-Buddy-Extensions) · [Plugin source and releases](https://github.com/lXiaoSel1/AI-Buddy-Bilibili).
+
+## 2.0.14
+
+沿用已验收的本机 2.0.13：新观看按角色聊天连接固定阅读、汇总和感想，集中修复的执行失效、模型包装和页面导航处理一并公开。旧计划、未知回执、权限、合同与数据格式保留。本轮仅使用新版本及正式下载身份，不增加业务行为。
+
+Publishes the accepted local 2.0.13 behavior: new viewings pin the character chat connection for reading, consolidation and reflection, including the batch lifecycle, response-wrapper and navigation fixes. Existing plans, unknown receipts, capabilities, contract and schema are preserved. This preparation changes only release identifiers and documentation.

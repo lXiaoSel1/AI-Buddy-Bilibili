@@ -30,3 +30,9 @@ for(const schemaInvalid of [true,false])test('exact known-invalid receipt clears
 test('an invalid recovery receipt must retain the same provider identity inside its original result',()=>{
  const view=state();view.calls[0].processed=false;view.recoveredResults=[{...result,receiptKind:'invalid',schemaInvalid:true,understanding:null,result:{requestId:'different-provider',text:'{malformed'}}];assert.throws(()=>recoverFullReadingRecord(local(),view,()=>{throw Error('must not write a mismatched receipt');}),{code:'BILI_FULL_RESULT_CONFLICT'});
 });
+
+test('exact fenced-invalid reclassification writes one derived result and preserves its original audit on repeat',()=>{
+ const record={...local(),pending:null,modelReason:'BILI_FULL_MATERIAL_NOT_COMPLETED',invalidReceipts:{batch:{providerRequestId:'paid-original',resultRef:'raw-original-ref'}}},original={stepId:'batch',providerRequestId:'paid-original',result:{requestId:'paid-original',text:'```json\n'+JSON.stringify(result.understanding)+'\n```'},material:result.material,schemaInvalid:true},writes=[];
+ const next=recoverFullReadingRecord(record,state(),(value,options)=>{writes.push({value,options});return 'derived-ref';},()=>original);assert.equal(writes.length,1);assert.deepEqual(writes[0].options.priorInvalid,original);assert.equal(next.results.batch.resultRef,'derived-ref');assert.deepEqual(next.results.earlier,record.results.earlier);assert.equal(next.invalidReceipts.batch,undefined);assert.equal(next.recoveredInvalidReceipts.batch.resultRef,'raw-original-ref');assert.equal(next.recoveredInvalidReceipts.batch.priorModelReason,'BILI_FULL_MATERIAL_NOT_COMPLETED');
+ const repeated=recoverFullReadingRecord(next,state(),()=>{throw Error('must not rewrite the derived result');},()=>writes[0].value);assert.deepEqual(repeated,next);assert.deepEqual(original.result.text,'```json\n'+JSON.stringify(result.understanding)+'\n```');
+});

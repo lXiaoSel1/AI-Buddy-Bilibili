@@ -20,7 +20,7 @@ function fixture(options={}){
     if(method==='social.context.read'){
       if(payload.purpose==='plugin-background')return {accountId:'account-1',managedConnections:catalog(),permissions:payload.principal?.contextToken==='background-token'?['plugin.activity']:[]};
       if(payload.purpose==='manage-plugin')return payload.principal?.contextToken==='owner-token'?{accountId:'account-1',permissions:['plugin.manage'],sourceMode:'proposal-mock',availableCharacters:state.availableCharacters??[{id:'alpha',label:'甲角色'},{id:'beta',label:'乙角色'}],managedConnections:catalog()}:{accountId:'account-1',permissions:[]};
-      return {contextToken:`context:${payload.characterId}:${state.life}`,accountId:'account-1',characterId:payload.characterId,personaId:'persona-1',lifeId:state.life,operationId:state.operation,generation:state.generation,sleeping:state.sleeping,appCurrentCharacterId:'app-character',sourceMode:'proposal-mock'};
+      return {connectionRef:payload.modelConnectionRef??state.characterModelRefs?.[payload.characterId]??state.chatDefaultRef??'managed-model',contextToken:`context:${payload.characterId}:${state.life}`,accountId:'account-1',characterId:payload.characterId,personaId:'persona-1',lifeId:state.life,operationId:state.operation,generation:state.generation,sleeping:state.sleeping,appCurrentCharacterId:'app-character',sourceMode:'proposal-mock'};
     }
     if(method==='activity.lease'&&state.failLease)throw Object.assign(Error('lease refused'),{code:'BUDDY_LEASE_DENIED'});if(method==='activity.lease'){/* like the social host: an ended activity id is never leased again */const lease=state.leases.get(payload.activityId);if(lease==='ended')throw Object.assign(Error('Activity already ended or belongs to another scope'),{code:'BUDDY_SOCIAL_DENIED'});state.leases.set(payload.activityId,'active');return {leaseId:`lease:${payload.activityId}`,generation:state.generation,expiresAt:state.at+300000};}
     if(method==='activity.check')return {valid:!state.invalidLease,characterId:payload.characterId,lifeId:payload.lifeId,operationId:payload.operationId,generation:payload.generation};
@@ -45,15 +45,28 @@ function fixture(options={}){
   return {state,host,platform,databasePath,call,get service(){return service;},async configure(settings={}){return call('settings.update',{connectionRef:'managed-bilibili',modelConnectionRef:'managed-model',...settings});},async reopen(){await service.close();service=createBilibiliService({databasePath,host,platform,now:()=>state.at,timeZone:'America/New_York'});return service;},async close(){await service.close();}};
 }
 
+test('new viewings freeze the watching role chat connection and accept global chat fallback without legacy selection',async()=>{
+ const f=fixture({characterModelRefs:{alpha:'alpha-chat',beta:'beta-chat'},chatDefaultRef:'global-chat'});
+ try{
+  await f.configure();assert.equal((await f.call('settings.read')).settings.modelConnectionRef,'managed-model');
+  for(const [characterId,connectionRef]of [['alpha','alpha-chat'],['beta','beta-chat']]){
+   const activity=await f.call('now',{characterId});assert.equal(activity.state,'completed');assert.equal(activity.modelConnectionRef,connectionRef);assert.equal(f.state.calls.find(value=>value.method==='models.request'&&value.payload.activityId===activity.id).payload.connectionRef,connectionRef);
+  }
+  await f.configure({modelConnectionRef:null});const fallback=await f.call('now',{characterId:'fallback'});assert.equal(fallback.state,'completed');assert.equal(fallback.modelConnectionRef,'global-chat');
+  assert.ok(f.state.calls.filter(value=>value.method==='social.context.read'&&value.payload.purpose==='bilibili-activity').every(value=>!Object.hasOwn(value.payload,'modelConnectionRef')));
+ }finally{await f.close();}
+});
+
 async function cachedWithoutHostProof(f){
   await f.configure({modelConnectionRef:null});
+  f.state.modelHook=()=>{throw Object.assign(Error('Missing host observation'),{code:'SOCIAL_UNOBSERVED_MATERIAL'});};
   const first=await f.call('now',{characterId:'alpha'});
-  assert.equal(first.lastFailureCode,'BILI_MODEL_REQUIRED');
-  assert.equal(f.state.materials,1);assert.equal(f.state.models,0);
+  assert.equal(first.lastFailureCode,'SOCIAL_UNOBSERVED_MATERIAL');
+  assert.equal(f.state.materials,1);assert.equal(f.state.models,1);f.state.models=0;f.state.modelHook=null;f.state.calls=[];
   await f.configure();
 }
 const mockUnderstanding=()=>({requestId:'actual-model-once',text:JSON.stringify({summary:'Read after host proof',notes:'Verified material',evidenceRefs:['subtitle:1'],completedMaterial:true})});
-test('cached material acquired before model selection is refetched once after definitive host proof rejection',async()=>{
+test('cached material retained after rejected host proof is refetched once after definitive host proof rejection',async()=>{
   const f=fixture();try{
     await cachedWithoutHostProof(f);await f.reopen();let providerCalls=0;
     f.state.modelHook=()=>{if(f.state.materials===1)throw Object.assign(Error('Missing host observation'),{code:'SOCIAL_UNOBSERVED_MATERIAL'});providerCalls++;return mockUnderstanding();};

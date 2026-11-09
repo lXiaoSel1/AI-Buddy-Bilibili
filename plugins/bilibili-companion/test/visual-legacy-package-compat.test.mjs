@@ -18,7 +18,7 @@ test('actual2.0.2 to2.1 to2.0.2 to2.1 preserves visual in-flight data without ol
  const old=await import(pathToFileURL(modulePath).href);assert.equal(typeof old.createBilibiliService,'function');
  const state={models:0,selects:0,prepares:0,holdRead:false,readingId:null};let service,readStarted;
  const entered=new Promise(resolve=>readStarted=resolve),principal={contextToken:'app-owner'},catalog=[{ref:'bili',label:'Fixture account',platform:'bilibili'},{ref:'model',label:'Fixture model',platform:'model'}];
- const context={contextToken:'activity',accountId:'10001',characterId:'deepseek',personaId:'default',lifeId:'life-1',operationId:'op-1',generation:1};
+ const context={connectionRef:'model',contextToken:'activity',accountId:'10001',characterId:'deepseek',personaId:'default',lifeId:'life-1',operationId:'op-1',generation:1};
  const segments=[{id:'segment-0',from:0,to:60},{id:'segment-1',from:60,to:180},{id:'segment-2',from:180,to:480},{id:'segment-3',from:480,to:600}];
  const dto=()=>({readingId:state.readingId,segments,remaining:16,zoomRemaining:2,phase:'reading',materialMissing:[]});
  const host={async invoke(method,payload,options={}){

@@ -1,19 +1,29 @@
 import {assert} from '../../../shared/errors.mjs';
 import {UNDERSTANDING_SCHEMA} from './prompts.mjs';
+import {parseModelResponse} from './model-response.mjs';
 import {validVisualUnderstanding,visualRequest} from './visual-reading.mjs';
 
 export const isFullReadingPause=code=>typeof code==='string'&&(code.startsWith('BILI_FULL_')||['BILI_MEDIA_BUSY','BILI_VISION_UNCERTAIN','SOCIAL_MODEL_RESULT_UNKNOWN','BILI_VISION_MODEL_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_CACHE_MISSING','SOCIAL_MODEL_NOT_SUBMITTED'].includes(code));
 const unpack=v=>v?.reading??v;
+export const parseFullReadingUnderstanding=result=>parseModelResponse(result);
 // Host confirmation/coverage are facts; local receipts and uncertain submissions
 // are an independent safety checkpoint and must never be replaced by a DTO.
 export function syncFullReadingRecord(record,state){
- const {recoveredResults,...publicState}=state;const next={...record,...publicState,modelReason:state.modelReason??null};
- for(const key of ['results','pending','invalidReceipts']){if(Object.hasOwn(record,key))next[key]=record[key];else delete next[key];}
+ const {recoveredResults,notSentResults,...publicState}=state;const next={...record,...publicState,modelReason:state.modelReason??null};
+ for(const key of ['results','pending','invalidReceipts','recoveredInvalidReceipts']){if(Object.hasOwn(record,key))next[key]=record[key];else delete next[key];}
  return next;
+}
+export function recoverNotSentFullReading(record,state){
+ const proofs=state.notSentResults??[],pending=record?.pending;
+ assert(Array.isArray(proofs)&&proofs.length<=1,'BILI_FULL_RESULT_CONFLICT','Only one exact not-sent batch can be recovered');
+ if(!pending||proofs.length!==1)return record;
+ const proof=proofs[0],call=state.calls?.find(value=>value.stepId===pending.stepId);
+ assert(record.readingId===state.readingId&&proof.readingId===record.readingId&&proof.planHash===record.planHash&&proof.planHash===state.planHash&&proof.stepId===pending.stepId&&proof.inputHash===pending.inputHash&&pending.requestId===record.readingId+':'+pending.stepId&&typeof proof.inputHash==='string'&&proof.inputHash&&call?.status==='not-sent'&&!call.providerRequestId&&record.phase!=='cancelled'&&state.phase!=='cancelled'&&state.phase!=='completed'&&state.confirmed===true&&state.needsReview!==true&&state.finalProviderRequestId==null&&state.finalProcessed!==true&&!state.calls.some(value=>['submitted','unknown'].includes(value.status))&&!record.results?.[pending.stepId]&&!record.invalidReceipts?.[pending.stepId],'BILI_FULL_RESULT_CONFLICT','Not-sent recovery must match the original unreturned submission');
+ const next=syncFullReadingRecord(record,state);next.pending=null;next.needsReview=false;next.modelReason=null;next.phase='paused';return next;
 }
 export function recoverFullReadingRecord(record,state,writeResult,readResult=null){
  const receipts=state.recoveredResults??[];assert(Array.isArray(receipts)&&receipts.length<=1,'BILI_FULL_RESULT_CONFLICT','Recovery must identify one original batch');if(!receipts.length||!record)return record;
- const receipt=receipts[0],pending=record.pending,invalid=receipt.receiptKind==='invalid',prior=(invalid?record.invalidReceipts:record.results)?.[receipt.stepId];
+ const receipt=receipts[0],pending=record.pending,invalid=receipt.receiptKind==='invalid',retainedInvalid=!invalid&&record.invalidReceipts?.[receipt.stepId],upgrade=!!(retainedInvalid&&!record.results?.[receipt.stepId]),prior=(invalid?record.invalidReceipts:record.results)?.[receipt.stepId]??retainedInvalid;
  // A legacy checkpoint may have committed before its activity row. Without a
  // pending submission, the retained local index AND original receipt must match.
  if(!pending&&(!prior||!readResult))return record;
@@ -22,10 +32,15 @@ export function recoverFullReadingRecord(record,state,writeResult,readResult=nul
  if(pending)assert(receipt.stepId===pending.stepId&&receipt.inputHash===pending.inputHash,'BILI_FULL_RESULT_CONFLICT','Recovery must match the exact pending input');
  assert(invalid?!processed&&receipt.schemaInvalid===!schemaValid&&receipt.result&&typeof receipt.result==='object':processed,'BILI_FULL_RESULT_CONFLICT','A complete evidence-linked host receipt or its original known-invalid result is required');
  if(invalid)assert((receipt.result.providerRequestId??receipt.result.requestId??receipt.result.usageReceipt?.providerRequestId)===receipt.providerRequestId,'BILI_FULL_RESULT_CONFLICT','The original invalid result must retain its exact provider request identity');
- assert(!(invalid?record.results:record.invalidReceipts)?.[receipt.stepId],'BILI_FULL_RESULT_CONFLICT','An original receipt cannot change classification');
+ assert(upgrade||!(invalid?record.results:record.invalidReceipts)?.[receipt.stepId],'BILI_FULL_RESULT_CONFLICT','An original receipt cannot change classification');
  const value=invalid?{stepId:receipt.stepId,providerRequestId:receipt.providerRequestId,result:receipt.result,material:receipt.material,schemaInvalid:receipt.schemaInvalid}:{stepId:receipt.stepId,understanding:receipt.understanding,providerRequestId:receipt.providerRequestId,material:receipt.material};
- if(!pending)assert(prior.providerRequestId===receipt.providerRequestId&&JSON.stringify(readResult(receipt.stepId))===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','The original local receipt must equal the verified host receipt');
+ let priorInvalid;
+ if(upgrade){
+  priorInvalid=readResult?.(receipt.stepId);const raw=priorInvalid?.result,parsed=parseFullReadingUnderstanding(raw);
+  assert(!pending&&record.phase!=='cancelled'&&state.phase!=='cancelled'&&record.needsReview!==true&&state.needsReview!==true&&!state.calls?.some(call=>['submitted','unknown'].includes(call.status))&&prior.providerRequestId===receipt.providerRequestId&&priorInvalid?.stepId===receipt.stepId&&priorInvalid.providerRequestId===receipt.providerRequestId&&priorInvalid.schemaInvalid===true&&(raw?.providerRequestId??raw?.requestId??raw?.usageReceipt?.providerRequestId)===receipt.providerRequestId&&raw.understanding==null&&typeof raw.text==='string'&&/^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.test(raw.text.trim())&&validVisualUnderstanding(parsed,ids)&&parsed.completedMaterial===true&&JSON.stringify(parsed)===JSON.stringify(receipt.understanding)&&JSON.stringify(priorInvalid.material)===JSON.stringify(receipt.material),'BILI_FULL_RESULT_CONFLICT','Only the exact original fenced-valid invalid receipt can be locally reprocessed');
+ }else if(!pending)assert(prior.providerRequestId===receipt.providerRequestId&&JSON.stringify(readResult(receipt.stepId))===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','The original local receipt must equal the verified host receipt');
  const next=syncFullReadingRecord(record,state);
+ if(upgrade){const ref=writeResult(value,{priorInvalid});next.results={...(record.results??{}),[receipt.stepId]:{stepId:receipt.stepId,providerRequestId:receipt.providerRequestId,resultRef:ref??receipt.stepId}};next.invalidReceipts={...record.invalidReceipts};delete next.invalidReceipts[receipt.stepId];next.recoveredInvalidReceipts={...(record.recoveredInvalidReceipts??{}),[receipt.stepId]:{providerRequestId:prior.providerRequestId,resultRef:prior.resultRef,schemaInvalid:true,priorModelReason:record.modelReason??null}};}
  if(pending){const ref=writeResult(value);if(invalid)next.invalidReceipts={...(record.invalidReceipts??{}),[receipt.stepId]:{providerRequestId:receipt.providerRequestId,resultRef:ref??receipt.stepId}};else next.results={...(record.results??{}),[receipt.stepId]:{stepId:receipt.stepId,providerRequestId:receipt.providerRequestId,resultRef:ref??receipt.stepId}};}
  next.pending=null;next.needsReview=state.needsReview===true;next.modelReason=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':state.modelReason??null;return next;
 }
@@ -53,7 +68,7 @@ export async function runFullReading({a,c,lease,host,materials,signal,check,read
   const requestId=a.id+':'+batch.batchId;record.pending={stepId:batch.batchId,requestId,inputHash:batch.inputHash};record.phase='reading';record.planHash=state.planHash;record.sheetRef=batch.visualMaterialRefs[0]??record.sheetRef;a.modelState='started';persist();let result;
   try{if(signal?.aborted)throw Object.assign(Error('Cancelled before host invocation'),{code:'SOCIAL_MODEL_NOT_SUBMITTED'});result=await host.invoke('models.request',{sourcePluginId:'@ai-buddy/bilibili-companion',contextToken:c.contextToken,leaseId:lease.leaseId,connectionRef:a.modelConnectionRef,purpose:'bilibili-understanding',activityId:a.id,requestId,readingMode:'full-v1',readingId:a.id,stepId:batch.batchId,stepKind:batch.stepKind,fullInputHash:batch.inputHash,visualMaterialRefs:batch.visualMaterialRefs,material:batch.material,video:a.video,system,messages:[{role:'user',content:JSON.stringify({task:summary?'source-preserved-facts-to-character-reflection':'read-every-planned-item',finalSummary:batch.finalSummary,planHash:state.planHash,material:batch.material})}],outputSchema:'bilibili-understanding-proposal-v1'},{signal});}
   catch(error){if(error.code==='SOCIAL_MODEL_NOT_SUBMITTED'){record.pending=null;a.modelState='prepared';record.phase='paused';record.modelReason=error.causeCode??error.code;persist();if(!signal?.aborted&&!summary&&['MEMORY_CONTEXT_CAPACITY','MODEL_CONTEXT_CAPACITY','BILI_FULL_MODEL_CAPACITY','MODEL_IMAGE_TOO_LARGE'].includes(error.causeCode)&&retry<2){retry++;continue;}}else{record.phase='paused';record.modelReason=error.code??'BILI_VISION_UNCERTAIN';persist();}throw error;}
-  let understanding=result?.understanding;try{if(!understanding&&typeof result?.text==='string')understanding=JSON.parse(result.text);}catch{}
+  const understanding=parseFullReadingUnderstanding(result);
   const providerRequestId=result?.providerRequestId??result?.requestId??result?.usageReceipt?.providerRequestId;assert(providerRequestId,'BILI_MODEL_RECEIPT_REQUIRED','The actual provider request identity is required');const schemaValid=validVisualUnderstanding(understanding,ids);if(!schemaValid||understanding.completedMaterial!==true){transaction(()=>{record.pending=null;record.phase='paused';record.modelReason='BILI_FULL_MATERIAL_NOT_COMPLETED';record.invalidReceipts??={};const invalid={stepId:batch.batchId,providerRequestId,result,material:batch.material,schemaInvalid:!schemaValid};record.invalidReceipts[batch.batchId]=writeResult?{providerRequestId,resultRef:writeResult(invalid)??batch.batchId}:{providerRequestId,result};a.modelState='returned';persist();});throw Object.assign(Error('The known provider response did not complete the required material; it will not be replayed'),{code:'BILI_FULL_MATERIAL_NOT_COMPLETED'});}
   transaction(()=>{last={stepId:batch.batchId,understanding,providerRequestId,material:batch.material};record.results[batch.batchId]=writeResult?{stepId:batch.batchId,providerRequestId,resultRef:writeResult(last)??batch.batchId}:last;record.pending=null;record.modelReason=null;a.modelState='prepared';retry=0;persist();});await check();state=await request('get');record=syncFullReadingRecord(record,state);persist();if(state.phase==='paused'&&state.modelReason)throw Object.assign(Error(state.modelReason),{code:state.modelReason});
  }

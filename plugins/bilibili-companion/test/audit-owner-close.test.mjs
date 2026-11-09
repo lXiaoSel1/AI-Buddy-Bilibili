@@ -12,7 +12,7 @@ function fixture(t){
  const identity={pid:process.pid,birth:'current-birth',executable:process.execPath};
  const host={async invoke(method,payload){
   if(method==='ui.bubble'){bubbles.push(payload);if(payload.clear&&hooks.clear)return hooks.clear(payload);return {cleared:true};}
-  if(method==='social.context.read')return payload.purpose==='manage-plugin'?{contextToken:'owner',accountId:'123',permissions:['plugin.manage'],managedConnections:[]}:{contextToken:'context',accountId:'123',characterId:payload.characterId,personaId:'p',lifeId:'l',operationId:'o',generation:1,sleeping:false};
+  if(method==='social.context.read')return payload.purpose==='manage-plugin'?{contextToken:'owner',accountId:'123',permissions:['plugin.manage'],managedConnections:[]}:{connectionRef:payload.modelConnectionRef??'model',contextToken:'context',accountId:'123',characterId:payload.characterId,personaId:'p',lifeId:'l',operationId:'o',generation:1,sleeping:false};
   if(method==='activity.lease')return {leaseId:'lease',generation:1};if(method==='activity.check')return {valid:true,generation:1,characterId:'whale',lifeId:'l',operationId:'o'};
   if(method==='models.request')return {requestId:'mock-only',text:JSON.stringify({summary:'Mock public material',evidenceRefs:['s1'],completedMaterial:true})};
   if(method==='experience.append')return {recorded:true,eventId:payload.eventId};if(method==='activity.finish')return {finished:true};

@@ -31,3 +31,7 @@ for(const lang of ['zh-CN','en']){
   const {page,reading}=fixture(t,{lang});Object.assign(reading,{confirmed:true,phase:'completed',coverage:structuredClone(covered),progress:{completed:314,total:314}});await open(page,lang);const text=page.text();assert.ok(text.includes(en?'Reading completed':'阅读完成'));assert.ok(!text.includes(en?'notes are being organized':'正在整理感想'));assert.ok(!text.includes(en?'the notes are not complete':'感想尚未完成'));
  });
 }
+
+for(const lang of ['zh-CN','en'])test(lang+': a receipt-recovered paused DTO keeps Continue available without automatically resuming',async t=>{
+ const {page,reading,calls}=fixture(t,{lang});Object.assign(reading,{activityId:'full-reading-1',confirmed:true,phase:'paused',modelReason:null,pauseReason:'receipt-recovered',needsReview:false,coverage:{complete:true,images:{completed:1,total:1},cues:{completed:1,total:1}},results:[{stepId:'batch-1',summary:'Original fenced observation',notes:'Original fenced detail',evidenceRefs:['frame-1']}]});await open(page,lang);assert.equal(page.button(lang==='en'?'Continue reading':'继续阅读').props.disabled,false);assert.ok(!page.text().includes(lang==='en'?'The model returned an incomplete schema or evidence.':'模型已返回，但字段或证据不完整。'));assert.equal(calls.filter(call=>call.action==='reading.continue'||call.action==='reading.confirm').length,0);
+});
