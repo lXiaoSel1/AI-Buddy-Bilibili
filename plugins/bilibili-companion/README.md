@@ -1,14 +1,18 @@
 # AI Buddy Bilibili / B站陪伴
 
+2.0.16：已经确认的阅读可以跨天读完；B站登录过期时暂停并提示重新扫码，不再降级成只读标题和简介；状态里的版本号改为读取包清单。
+
 2.0.15：只改了兼容声明（AI 酱 >= 2.0.2、DSH >= 0.2.1-rc.3），功能和 2.0.14 相同。
 
 2.0.14：新阅读、整理和感想使用观看角色的聊天连接；不再单独选择感想模型。旧阅读保留原连接和进度。缺少图片能力时明确暂停，不自动换模型。
+
+Version 2.0.16 lets a confirmed reading finish across midnight, pauses and asks for a new sign-in when the Bilibili login has expired instead of falling back to the title and description, and reads the status version from the package manifest.
 
 Version 2.0.15 changes only the compatibility declarations (AI Buddy >= 2.0.2, DSH >= 0.2.1-rc.3); features match 2.0.14.
 
 Version 2.0.14 follows each viewing character's chat connection for new readings and reflections. Existing plans keep their pinned connection; image capability failures do not switch models.
 
-`@ai-buddy/bilibili-companion` **2.0.15** · AI Buddy **>= 2.0.2** · DSH **>= 0.2.1-rc.3** · source-available: Apache 2.0 + Commons Clause.
+`@ai-buddy/bilibili-companion` **2.0.16** · AI Buddy **>= 2.0.2** · DSH **>= 0.2.1-rc.3** · source-available: Apache 2.0 + Commons Clause.
 
 让角色按你确认的计划读取 B站视频帧与字幕，保存观看笔记，并在另行授权后发表评论。此版本沿用本机 2.0.13 的已验收功能；桥接版本、合同、权限和数据格式保持原值。
 
