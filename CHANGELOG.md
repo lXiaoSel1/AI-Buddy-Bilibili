@@ -1,3 +1,8 @@
+## 2.0.15 — 2026-11-09
+
+- 只改了兼容声明：需要 AI 酱 2.0.2 或更新版本、DSH 0.2.1-rc.3 或更新版本（之后的预览版也算），不再设上限；插件接口仍是 ^1.3.0。功能、权限、合同和数据格式和 2.0.14 相同。
+- Compatibility declarations only: AI Buddy 2.0.2 or later and DSH 0.2.1-rc.3 or later (later previews included), with no upper bound; the plugin bridge stays ^1.3.0. Features, capabilities, contract and data format are unchanged from 2.0.14.
+
 ## 2.0.14 — 2026-11-08
 
 - 沿用已验收的本机 2.0.13：新观看按角色聊天连接固定阅读、汇总和感想，集中修复的执行失效、模型包装和页面导航处理一并公开。旧计划、未知回执、权限、合同与数据格式保留。本轮仅使用新版本及正式下载身份，不增加业务行为。
