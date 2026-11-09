@@ -1,6 +1,6 @@
 {
   "packageName": "@ai-buddy/bilibili-companion",
-  "exactVersion": "2.0.15",
+  "exactVersion": "2.0.16",
   "compatibility": {
     "app": ">=2.0.2",
     "dsh": ">=0.2.1-rc.3",

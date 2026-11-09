@@ -15,6 +15,7 @@ import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadi
 const parse=v=>v?JSON.parse(v):null;
 const terminal=new Set(['completed','partial','failed','cancelled']);
 const active=new Set(['selecting','acquiring-material','understanding','recording']);
+const platformPause=code=>['BILI_LOGIN_EXPIRED','BILI_REQUEST_RESTRICTED'].includes(code);
 // C11: the pet bubble's second line (the host translates these fixed phrases).
 const BUBBLE_DETAIL=Object.freeze({selecting:'正在挑视频','acquiring-material':'正在取视频材料',understanding:'正在看',recording:'正在记录',paused:'已暂停',completed:'看完了',partial:'只看了一部分',failed:'没看成'});
 const text=(v,max=10000)=>typeof v==='string'?v.slice(0,max):'';
@@ -143,13 +144,13 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   }
   const modelPin=a=>{assert(typeof a.modelConnectionRef==='string'&&a.modelConnectionRef,'BILI_VISION_MODEL_CHANGED_RESTART_REQUIRED','The original reading model connection is missing; start a separate reading');return a.modelConnectionRef;};
   const readingContext=(a,principal,expectedEpoch)=>context(a.characterId,principal,'bilibili-activity',expectedEpoch,modelPin(a));
-  function eligible(accountId,{day=clock().day,startMinute=settings().startMinute,endMinute=settings().endMinute,automatic=false}={}){
+  function eligible(accountId,{day=clock().day,startMinute=settings().startMinute,endMinute=settings().endMinute,automatic=false,starting=false,comment=false}={}){
     assert(!closing,'BILI_CLOSED','The plugin is closing');
-    assert(day===clock().day,'BILI_SCHEDULE_EXPIRED','Yesterday\'s authorization cannot carry to today');
-    assert(store.get(`day:${accountId}:${day}`,true)!==false,'BILI_TODAY_FORBIDDEN','Watching is not allowed today');
+    if(starting&&automatic||comment)assert(day===clock().day,'BILI_SCHEDULE_EXPIRED','Yesterday\'s start authorization cannot carry to today');
+    assert(store.get(`day:${accountId}:${day}`,true)!==false&&store.get(`day:${accountId}:${clock().day}`,true)!==false,'BILI_TODAY_FORBIDDEN','Watching is not allowed today');
     assert(!store.get('stopped',false),'BILI_STOPPED','Watching was explicitly stopped');
     assert(!store.get('pausedByUser',false),'BILI_PAUSED','Watching is paused');
-    assert(clock().minute>=startMinute&&clock().minute<endMinute,'BILI_OUTSIDE_WINDOW','This activity is outside its allowed window');
+    if(starting&&automatic||comment)assert(clock().minute>=startMinute&&clock().minute<endMinute,'BILI_OUTSIDE_WINDOW','This activity is outside its allowed window');
     if(automatic)assert(settings().autonomousEnabled,'BILI_AUTONOMOUS_DISABLED','Autonomous viewing is disabled');
   }
   function reserve(id,accountId,day,kind){
@@ -307,8 +308,8 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       if(a.state==='recording'||terminal.has(a.state)){a.lastFailureCode=error.code??'BILI_ACTIVITY_FAILED';save(a);return a;}
       if(['BILI_SCHEDULE_EXPIRED','BILI_OUTSIDE_WINDOW'].includes(error.code)&&a.modelState==='returned'&&a.understanding){a.finishedAfterWindow=true;a.lastFailureCode=error.code;recordUnderstanding(a);await flushOutbox(a.accountId);return row(a.id);}
       const cause=inflight.get(a.id)?.reason;
-      a.state=cause==='stop'||cause==='today-forbidden'||cause==='close'?'cancelled':['user-return','pause','settings-changed','autonomous-disabled'].includes(cause)?'paused':error.code==='BILI_CANCELLED'||isVisualPause(error.code)||isFullReadingPause(error.code)?'paused':'failed';
-      a.pauseReason=cause??(isVisualPause(error.code)||isFullReadingPause(error.code)?error.code:null);a.lastFailureCode=error.code??'BILI_ACTIVITY_FAILED';a.needsReview=a.modelState==='started';
+      a.state=cause==='stop'||cause==='today-forbidden'||cause==='close'?'cancelled':['user-return','pause','settings-changed','autonomous-disabled'].includes(cause)?'paused':error.code==='BILI_CANCELLED'||platformPause(error.code)||isVisualPause(error.code)||isFullReadingPause(error.code)?'paused':'failed';
+      a.pauseReason=cause??(platformPause(error.code)||isVisualPause(error.code)||isFullReadingPause(error.code)?error.code:null);a.lastFailureCode=error.code??'BILI_ACTIVITY_FAILED';a.needsReview=a.modelState==='started';
       store.transaction(()=>{settle(a.id,a.effective&&a.modelState==='returned'?'committed':'released');save(a);const event=experience(a,a.state==='paused'?'partial':a.state);event.eventId=`${a.id}:attempt`;event.idempotencyKey=event.eventId;if(a.readingMode!=='full-v1')enqueue(event.eventId,a.accountId,'experience',event);});
       return a;
     }finally{if(lease)try{await host.invoke('activity.finish',{sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,leaseId:lease.leaseId,activityId:leaseAttemptId,status:row(a.id)?.state??'failed'});}catch{}inflight.delete(a.id);}
@@ -317,7 +318,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   async function begin({characterId,videoId=null,schedule=null,manual=false,visual=false,selectedCids=null,fullConfig=null,claimGuard=null},principal,expectedEpoch){
     claimGuard?.();const c=await context(characterId,principal,'bilibili-activity',expectedEpoch),s=settings();claimGuard?.();
     c.interests=[...(Array.isArray(c.interests)?c.interests:[]),...Object.entries(store.get(`interests:${c.characterId}:${c.lifeId}`,{})).map(([tag,count])=>({tag,weight:Math.min(3,count/10)}))];
-    eligible(c.accountId,{day:schedule?.day??clock().day,startMinute:schedule?.startMinute??s.startMinute,endMinute:schedule?.endMinute??s.endMinute,automatic:!!schedule&&!manual});
+    eligible(c.accountId,{day:schedule?.day??clock().day,startMinute:schedule?.startMinute??s.startMinute,endMinute:schedule?.endMinute??s.endMinute,automatic:!!schedule&&!manual,starting:true});
     if(c.sleeping){
       if(schedule){schedule.state='waiting-sleep';saveSchedule(schedule);if(!schedule.dreamOffered){const key=`${schedule.id}:dream`;enqueue(key,c.accountId,'share',{idempotencyKey:key,sourcePluginId:PLUGIN_ID,contextToken:c.contextToken,day:schedule.day,kind:'dream-expectation',characterId,lifeId:c.lifeId,operationId:c.operationId,channel:'app',scheduleId:schedule.id,requiresCurrentCharacter:true,noVideoAcquisition:true});schedule.dreamOffered=true;saveSchedule(schedule);await flushOutbox(c.accountId);}}
       return {state:'waiting-sleep',scheduleId:schedule?.id??null,videoAcquired:false,watchQuotaConsumed:false};
@@ -343,7 +344,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     const authorize=()=>authorizeComment(authorizationEpoch,s.connectionRef);authorize();
     assert(a.day===clock().day,'BILI_COMMENT_EXPIRED','Old activities cannot replay today\'s comment allowance');
     const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);authorize();assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
-    eligible(c.accountId,{day:a.day});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
+    eligible(c.accountId,{day:a.day,comment:true});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
     const guard={...a,automatic:false,controlEpoch:expectedEpoch??controlEpoch()};
     const id=`${a.id}:comment`,prior=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);
     if(prior)return {...parse(prior.data),state:prior.state};
@@ -394,7 +395,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     assert(a.day===clock().day,'BILI_COMMENT_EXPIRED','Old activities cannot replay today\'s comment allowance');
     assert(text===null||(typeof text==='string'&&text.trim().length>0&&text.length<=1000),'BILI_COMMENT_INVALID','A comment needs 1 to 1000 characters');
     const c=await context(a.characterId,principal,'bilibili-public-comment',expectedEpoch);authorize();assert(c.lifeId===a.lifeId&&c.operationId===a.operationId,'BILI_LIFE_CHANGED','This viewing belongs to an old life');
-    eligible(c.accountId,{day:a.day});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
+    eligible(c.accountId,{day:a.day,comment:true});assert(!c.sleeping,'BILI_SLEEPING','Do not post comments during sleep');
     const guard={...a,automatic:false,controlEpoch:expectedEpoch??controlEpoch()},id=`${a.id}:comment`,claimId=randomUUID();
     // draft -> approved is the single claim; a second click sees "approved" and gets the stored row back
     const claimed=store.transaction(()=>{authorize();const prior=db.prepare('SELECT state,data FROM bili_comments WHERE id=?').get(id);if(prior?.state!=='draft')return prior??null;const d=parse(prior.data),postText=text===null?d.text:text.trim();db.prepare("UPDATE bili_comments SET state='approved',data=? WHERE id=? AND state='draft'").run(JSON.stringify({...d,claimId,postText,edited:postText!==d.text}),id);return true;});
@@ -615,7 +616,6 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     function retirePaused(a,code){store.transaction(()=>{a.state='cancelled';a.lastFailureCode=code;save(a);settle(a.id,a.effective&&a.modelState==='returned'?'committed':'released');const event=experience(a,'cancelled');event.eventId=`${a.id}:retired:${code}`;event.idempotencyKey=event.eventId;enqueue(event.eventId,a.accountId,'experience',event);if(a.scheduleId){const parent=getSchedule(a.scheduleId);if(parent){parent.state='cancelled';parent.expired=code==='BILI_SCHEDULE_EXPIRED';saveSchedule(parent);}}});}
     const candidates=activities(accountId,['paused']).filter(a=>!targetActivityId||a.id===targetActivityId);
     for(const paused of candidates){
-      if(paused.day<clock().day||paused.day===clock().day&&clock().minute>=paused.endMinute){retirePaused(paused,'BILI_SCHEDULE_EXPIRED');continue;}
       // "Wait for me" (resumeMode manual) holds every automatic resume; "resume when idle" continues interruptions.
       if(!manual&&(s.resumeMode!=='idle'||!['user-return','restart','autonomous-disabled'].includes(paused.pauseReason))){blocked={resumed:false,reason:'manual-resume-required',activityId:paused.id};continue;}
       if(paused.scheduleId&&needsConfirmation(getSchedule(paused.scheduleId))){blocked={resumed:false,reason:'target-confirmation-required',scheduleId:paused.scheduleId};continue;}

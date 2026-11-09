@@ -31,9 +31,15 @@ export function createBilibiliHttpPlatform({request,now=Date.now,anonymousReadOn
     const parsed=new URL(url);
     assert(parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&(parsed.origin===API||credential==='none'&&(parsed.hostname.endsWith('.hdslb.com')||parsed.hostname.endsWith('.bilibili.com'))),'BILI_HTTP_URL_DENIED','Unexpected platform URL');
     const result=await request({operation:'http.request',platform:'bilibili',connectionRef,...binding,url:parsed.href,method,headers:{...headers,...(form?{'content-type':'application/x-www-form-urlencoded'}:{})},...(form?{form}:{}),credentialBinding:credential==='none'?null:{connectionRef,cookie:true,...(credential==='comment'?{formFields:{csrf:{secretRef:'bili_jct'},csrf_token:{secretRef:'bili_jct'}}}:{})},redirect:'error',maxResponseBytes,idempotencyKey,signal});
+    assert(result?.status!==412&&result?.status!==429,'BILI_REQUEST_RESTRICTED','The platform restricted this request; check Bilibili before continuing');
     assert(!result?.status||result.status>=200&&result.status<300,'BILI_HTTP_FAILED','The platform HTTP request failed');
     const value=result?.json??result?.body??result;
-    try{return typeof value==='string'?JSON.parse(value):value;}catch{throw fail('BILI_RESPONSE_INVALID','The platform response is not JSON');}
+    let body;try{body=typeof value==='string'?JSON.parse(value):value;}catch{throw fail('BILI_RESPONSE_INVALID','The platform response is not JSON');}
+    if(method==='GET'){
+      assert(![-352,-412].includes(body?.code),'BILI_REQUEST_RESTRICTED','The platform restricted this request; check Bilibili before continuing');
+      if(!anonymousReadOnly)assert(body?.code!==-101,'BILI_LOGIN_EXPIRED','The managed Bilibili login is unavailable');
+    }
+    return body;
   }
   async function metadata(videoId,connectionRef,context,lease,signal){
     let currentPage=1;if(/^https:\/\//.test(videoId)){let parsed;try{parsed=new URL(videoId);}catch{}assert(parsed&&parsed.protocol==='https:'&&(parsed.hostname==='bilibili.com'||parsed.hostname.endsWith('.bilibili.com')),'BILI_VIDEO_INVALID','Expected a Bilibili video link');videoId=/\/video\/(BV[0-9A-Za-z]+)/.exec(parsed.pathname)?.[1]??'';currentPage=Number(parsed.searchParams.get('p')??1);assert(Number.isSafeInteger(currentPage)&&currentPage>=1,'BILI_FULL_PART_INVALID','Invalid current part');}
@@ -59,6 +65,7 @@ export function createBilibiliHttpPlatform({request,now=Date.now,anonymousReadOn
       let failureCode=null;
       try{
         const nav=await json(`${API}/x/web-interface/nav`,{connectionRef,context,lease,signal});
+        if(!anonymousReadOnly)assert(nav?.data?.isLogin!==false,'BILI_LOGIN_EXPIRED','The managed Bilibili login is unavailable');
         assert(nav?.data?.wbi_img,'BILI_WBI_UNAVAILABLE','Public player signature keys are unavailable');
         const query=signWbi({bvid:v.videoId,cid:v.cid},nav.data.wbi_img,now());
         const player=await json(`${API}/x/player/wbi/v2?${query}`,{connectionRef,context,lease,signal});
@@ -76,7 +83,7 @@ export function createBilibiliHttpPlatform({request,now=Date.now,anonymousReadOn
           return normalizeMaterial({videoId:v.videoId,videoCid:v.cid,coverage:'subtitles',complete:fullReading||v.pageCount===1,items,sourceRefs:[v.url,`${subtitleURL.origin}${subtitleURL.pathname}`],readRange:{part:v.currentPage??1,parts:v.pageCount,cid:v.cid,language:track.lan,from:items[0].start,to:items.at(-1).end,scope:'subtitle-track'},coverageNotes:fullReading?'取得该P完整字幕轨道；逐字符分页和画面覆盖分别核对。':v.pageCount===1?'取得完整字幕轨道；没有声称读懂字幕以外画面。':'只读取第一分P字幕，未看完整个多分P视频。',fetchedAt:now()},v,{fullReading});
         }
         failureCode='BILI_NO_SUBTITLE';
-      }catch(error){if(signal?.aborted)throw error;if(fullReading)throw fail(error.code?.startsWith('BILI_FULL_')?error.code:'BILI_FULL_SUBTITLE_UNAVAILABLE','The subtitle acquisition failed; complete reading is paused rather than dropping its text');failureCode=error.code??'BILI_MATERIAL_UNAVAILABLE';}
+      }catch(error){if(signal?.aborted||['BILI_LOGIN_EXPIRED','BILI_REQUEST_RESTRICTED'].includes(error.code))throw error;const code=typeof error.code==='string'?error.code:null;if(fullReading)throw fail(code?.startsWith('BILI_FULL_')?code:error.name==='TimeoutError'?'BILI_FULL_SUBTITLE_TIMEOUT':'BILI_FULL_SUBTITLE_UNAVAILABLE','The subtitle acquisition failed; complete reading is paused rather than dropping its text');failureCode=code??(error.name==='TimeoutError'?'BILI_MATERIAL_TIMEOUT':'BILI_MATERIAL_UNAVAILABLE');}
       return normalizeMaterial({videoId:v.videoId,coverage:'description',complete:false,items:[{id:'description:1',text:`标题：${v.title}\n简介：${v.description||'未提供简介'}`}],sourceRefs:[v.url],readRange:{scope:'title-description',part:1,parts:v.pageCount},coverageNotes:`仅了解标题和简介；字幕/画面/ASR未取得（${failureCode}）。`,fetchedAt:now()},v);
     },
     async sendComment({connectionRef,context,lease,video,text,idempotencyKey,signal}){

@@ -92,6 +92,7 @@ const WATCH_REASONS={'receipt-recovered':['已核对原请求回执，已有进�
 const hhmm=m=>m>=1440?'24:00':`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 const langOf=()=>{const value=typeof document!=='undefined'?document.documentElement.dataset.buddyLang:null;return value?(value==='en'?'en':'zh-CN'):(typeof navigator!=='undefined'&&navigator.language?.startsWith('en')?'en':'zh-CN');};
 
+Object.assign(MESSAGES,{BILI_LOGIN_EXPIRED:['B站登录已过期，重新扫码后继续。','The Bilibili login expired. Scan again, then continue.'],BILI_REQUEST_RESTRICTED:['B站限制了这次请求，请检查平台状态后再继续。','Bilibili restricted this request. Check the platform before continuing.']});
 export function createBilibiliApp(React){
   const h=React.createElement;
   const Icon=(name,size=16)=>h('svg',{width:size,height:size,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true},h('path',{d:ICON[name]}));
@@ -267,6 +268,7 @@ export function createBilibiliApp(React){
         h('div',{className:'bili-row',style:{flexWrap:'nowrap'}},team([current.characterId]),h('div',{className:'bili-steps bili-grow'},h('b',{className:'bili-trunc'},current.video?.title??T('正在挑视频','Picking a video')),
           h('div',{className:'bili-meter',role:'progressbar','aria-label':T('观看进度','Viewing progress'),'aria-valuemin':0,'aria-valuemax':STEPS.length,'aria-valuenow':step+1},h('b',{style:{width:(step+1)/STEPS.length*100+'%'}})),
           current.state==='paused'&&(current.pauseReason||current.lastFailureCode||current.needsReview)&&h('span',{className:'bili-cap'},current.needsReview?T('上次模型请求结果待核对，不会自动重发。','The previous model request needs review and will not be submitted again automatically.'):reasonText(current.lastFailureCode??current.pauseReason)??T('请核对账号、模型、材料和观看安排后再继续。','Check the account, model, material and schedule before continuing.')),
+          current.state==='paused'&&current.lastFailureCode==='BILI_LOGIN_EXPIRED'&&h('button',{type:'button',className:'sm pri',disabled:working,onClick:()=>act('onboarding.open')},T('重新登录','Sign in again')),
           h('span',{className:'bili-cap'},current.state==='paused'?T('停在第 {n} 步，共 4 步','Stopped at step {n} of 4').replace('{n}',step+1):T('第 {n} 步，共 4 步 · ','Step {n} of 4 · ').replace('{n}',step+1)+T(STEPS[step][1],STEPS[step][2]))))),
       h('section',{className:'bili-card','aria-label':T('现在看','Watch now')},h('h2',null,T('现在看','Watch now')),h('p',{className:'bili-cap'},T('先预览当前P、采样参数、帧图、预计调用和模型。确认整份计划后，所选角色会按顺序完整阅读；缺少原视频或图片能力时暂停。','Preview the current part, sampling, frames, estimated calls and model first. One confirmation starts the complete sequential plan; missing original video or image capability pauses reading.')),
         h('div',{className:'bili-row',role:'group','aria-label':T('参与角色','Characters')},...characters.map(v=>h('button',{key:v.id,type:'button',className:'bili-chip','aria-pressed':chosen===v.id,onClick:()=>setPick(chosen===v.id?'':v.id)},Face(v.id,v.name),v.name)),!characters.length&&h('span',{className:'bili-cap'},T('本体还没提供可选角色','AI Buddy has not offered any characters yet'))),

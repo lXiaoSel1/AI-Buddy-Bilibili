@@ -1,4 +1,5 @@
 import {assertNewReleaseCompatibility} from './lib/plugin-release-compatibility.mjs';
+import {assertStatusVersion} from './lib/status-version.mjs';
 import {build,version as esbuildVersion} from 'esbuild';
 import {mkdir,readFile,writeFile,readdir,copyFile,lstat,rm} from 'node:fs/promises';
 import {join,dirname,relative,resolve} from 'node:path';
@@ -35,6 +36,7 @@ for(const slug of selected){
  const src=join(root,'plugins',slug),manifest=JSON.parse(await readFile(join(src,'package.json'),'utf8')),stage=join(out,slug,'package');
  const releasePolicy=JSON.parse(await readFile(join(root,'release-compatibility.json'),'utf8'));
  assertNewReleaseCompatibility(releasePolicy,{sourceManifest:manifest});
+ await assertStatusVersion(join(src,'package.json'));
  const sourceRows=await sourceInputs(src,slug);
  const sourceHash=hash(JSON.stringify(sourceRows));
  await mkdir(join(stage,'lib'),{recursive:true});
