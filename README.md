@@ -110,7 +110,7 @@
 
 ## 技术说明
 
-插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.16，需要 AI Buddy >= 2.0.2 和 DSH >= 0.2.1-rc.3，都只写下限。2.0.16 修了跨天阅读和登录过期的处理，桥接版本（^1.3.0）、合同、权限和数据格式都和 2.0.15 相同；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。这一版的变化见 [2.0.14 发行说明](RELEASE-NOTES-2.0.14.md)。
+插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.16，需要 AI Buddy >= 2.0.2 和 DSH >= 0.2.1-rc.3，都只写下限。2.0.16 修了跨天阅读和登录过期的处理，桥接版本（^1.3.0）、合同、权限和数据格式都和 2.0.15 相同；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。2.0.14 的变化另见 [2.0.14 发行说明](RELEASE-NOTES-2.0.14.md)。
 
 开发需要固定的 Node 24.21.0、npm 11.19.0 和 esbuild 0.28.2，在新的 checkout 里运行：
 
@@ -188,7 +188,7 @@ It uses unofficial Bilibili interfaces, which may change. A full real-account, r
 
 ### Technical notes
 
-Package `@ai-buddy/bilibili-companion` 2.0.16, requires AI Buddy >= 2.0.2 and DSH >= 0.2.1-rc.3, both lower bounds only. 2.0.16 fixes readings across midnight and expired logins; bridge version (^1.3.0), contract, permissions and data format are the same as 2.0.15; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md). See the [2.0.14 release notes](RELEASE-NOTES-2.0.14.md).
+Package `@ai-buddy/bilibili-companion` 2.0.16, requires AI Buddy >= 2.0.2 and DSH >= 0.2.1-rc.3, both lower bounds only. 2.0.16 fixes readings across midnight and expired logins; bridge version (^1.3.0), contract, permissions and data format are the same as 2.0.15; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md). See [CHANGELOG.md](CHANGELOG.md) for each version, and the [2.0.14 release notes](RELEASE-NOTES-2.0.14.md) for 2.0.14.
 
 ### License and third parties
 
