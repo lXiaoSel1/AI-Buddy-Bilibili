@@ -90,7 +90,7 @@
 - **画面**：按计划里的间隔从原视频抽帧，拼成带编号的分镜图交给模型；拿不到原视频时会暂停，不会拿平台的预览图冒充。
 - **字幕**：读 B站提供的字幕（优先中文，其次 AI 中文字幕和其他中文字幕）。**不读弹幕，也不听声音**：插件没有语音识别，视频没有字幕时，台词部分记为未知。
 - **读完的标准**：计划里的每张拼图和每段字幕都要有成功的回执，才算读完；容量不够时会把一批拆小，不会丢掉画面或截掉结尾。
-- **出问题时**：缺少原视频、权限或模型能力（例如模型不能读图）时会暂停并说明原因，不会悄悄换模型。暂停、取消、换账号或换角色后，旧的执行作废；结果不明的请求不会自动重发。2.0.16 起，B站登录过期时阅读会暂停，提示「B站登录已过期，重新扫码后继续。」，不再悄悄改成只读标题和简介，暂停期间不调用模型；B站临时限制请求时另有说明，不当成登录过期。本体 2.0.13 起，处理视频或字幕超时的时候，已经做好的分镜和字幕会保留。从本体 2.0.7 起，视频地址、连接和分段响应的故障代码显示在「技术详情」。之前失败的观看记录会保留，更新后重新点「现在看」发起新的尝试。
+- **出问题时**：缺少原视频、权限或模型能力（例如模型不能读图）时会暂停并说明原因，不会悄悄换模型。暂停、取消、换账号或换角色后，旧的执行作废；结果不明的请求不会自动重发。2.0.16 起，B站登录过期时阅读会暂停，提示「B站登录已过期，重新扫码后继续。」，不再悄悄改成只读标题和简介，暂停期间不调用模型；B站临时限制请求时另有说明，不当成登录过期。本体 2.0.14 起，处理视频或字幕超时的时候，已经做好的分镜和字幕会保留。从本体 2.0.7 起，视频地址、连接和分段响应的故障代码显示在「技术详情」。之前失败的观看记录会保留，更新后重新点「现在看」发起新的尝试。
 - 读完只说明这些材料都交给了模型并拿到了结果，**不保证她完全看懂**，也不保证她说的每件事都对。
 
 ## 数据与权限
@@ -175,7 +175,7 @@ Comments are authorized separately from watching. They start only after you choo
 - **Frames** are sampled from the original video at the planned interval and assembled into numbered sheets. If the original video cannot be fetched, reading pauses; platform preview images are never passed off as samples.
 - **Subtitles** come from Bilibili (Chinese first, then AI Chinese and other Chinese tracks). **She does not read danmaku or listen to audio**: there is no speech recognition, so without subtitles the dialogue stays unknown.
 - **Finished** means every planned sheet and every subtitle segment has a successful receipt. Batches are split when capacity runs short; frames are never dropped and the ending is never cut.
-- **When something is missing** (the original video, a permission, or a model that can read images), reading pauses with a reason and never switches models quietly. Pausing, cancelling or changing account or character invalidates the old run; requests with an unknown result are not replayed. From 2.0.16, an expired Bilibili login pauses the reading and asks you to sign in again instead of quietly falling back to the title and description, and no model is called while it is paused; temporary request limits from Bilibili are reported separately and are not treated as an expired login. From AI Buddy 2.0.13, when video or subtitle processing times out, the sheets and subtitles already prepared are kept. From AI Buddy 2.0.7, media-address, connection and range errors appear under Technical details. Failed viewing records stay; after updating, choose **Watch now** for a new attempt.
+- **When something is missing** (the original video, a permission, or a model that can read images), reading pauses with a reason and never switches models quietly. Pausing, cancelling or changing account or character invalidates the old run; requests with an unknown result are not replayed. From 2.0.16, an expired Bilibili login pauses the reading and asks you to sign in again instead of quietly falling back to the title and description, and no model is called while it is paused; temporary request limits from Bilibili are reported separately and are not treated as an expired login. From AI Buddy 2.0.14, when video or subtitle processing times out, the sheets and subtitles already prepared are kept. From AI Buddy 2.0.7, media-address, connection and range errors appear under Technical details. Failed viewing records stay; after updating, choose **Watch now** for a new attempt.
 - Finishing means the material reached the model and came back with results; **it does not guarantee she understood everything** or that every statement is right.
 
 ### Data and permissions
