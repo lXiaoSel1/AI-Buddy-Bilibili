@@ -1,3 +1,12 @@
+## 2.0.16 — 2026-11-10
+
+- 已经确认计划的阅读可以跨过午夜读完，也可以第二天继续，额度记在开始那天；日期和时间段只限制自动开始。
+- B站登录过期时，阅读暂停并提示重新扫码，不再降级成只读标题和简介，暂停期间不调用模型；B站临时限制请求时单独提示，不当成登录过期。
+- 状态里的版本号从包清单读取。需要 AI 酱 2.0.2 或更新版本；超时后保留已经做好的分镜和字幕，需要本体 2.0.13。插件接口（^1.3.0）、权限、合同和数据格式不变。
+- A reading whose plan you confirmed can finish after midnight or continue the next day, counted against the day it started; the date and time window only limit automatic starts.
+- An expired Bilibili login pauses the reading and asks you to sign in again instead of falling back to the title and description, and no model is called while paused; temporary request limits are reported separately.
+- The status version is read from the package manifest. Requires AI Buddy 2.0.2 or later; keeping prepared sheets and subtitles after a timeout needs AI Buddy 2.0.13. Plugin bridge (^1.3.0), capabilities, contract and data format are unchanged.
+
 ## 2.0.15 — 2026-11-09
 
 - 只改了兼容声明：需要 AI 酱 2.0.2 或更新版本、DSH 0.2.1-rc.3 或更新版本（之后的预览版也算），不再设上限；插件接口仍是 ^1.3.0。功能、权限、合同和数据格式和 2.0.14 相同。
