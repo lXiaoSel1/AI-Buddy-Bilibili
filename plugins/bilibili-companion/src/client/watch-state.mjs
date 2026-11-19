@@ -12,14 +12,14 @@ export function readingActivityStatus(activity,state,id){
  const phase=({reading:'understanding','awaiting-confirmation':'paused',unknown:'paused',stopped:'cancelled'})[state.phase]??state.phase;
  if(!['selecting','acquiring-material','understanding','recording','paused','completed','partial','failed','cancelled'].includes(phase))return activity;
  const reason=currentReadingReason(state);
- return {...activity,state:phase,statusRevision:revision(state.activityRevision),readingRevision:revision(state.readingRevision),pauseReason:reason,lastFailureCode:reason?state.modelReason??null:null,needsReview:state.needsReview===true};
+ return {...activity,state:phase,statusRevision:revision(state.activityRevision),readingRevision:revision(state.readingRevision),pauseReason:reason,lastFailureCode:reason?state.modelReason??null:null,failureDetails:state.failureDetails??null,failureCauseCode:state.failureCauseCode??null,needsReview:state.needsReview===true};
 }
 export function readingWatchStatus(previous,state,id){
  if(!previous||previous.activityId!==id)return previous;
  const activityRevision=revision(state.activityRevision),readingRevision=revision(state.readingRevision);
  if(activityRevision<revision(previous.activityRevision)||activityRevision===revision(previous.activityRevision)&&readingRevision<revision(previous.readingRevision))return previous;
  const confirmed=state.confirmed===true,phase=state.phase==='reading'?'understanding':state.phase;
- return {...previous,activityRevision,readingRevision,confirmed,state:phase,awaitingConfirmation:!confirmed&&['awaiting-confirmation','paused'].includes(state.phase),reason:currentReadingReason(state),needsReview:state.needsReview===true};
+ return {...previous,activityRevision,readingRevision,confirmed,state:phase,noPlan:state.noPlan===true,awaitingConfirmation:state.noPlan!==true&&!confirmed&&['awaiting-confirmation','paused'].includes(state.phase),reason:currentReadingReason(state),failureDetails:state.failureDetails??null,failureCauseCode:state.failureCauseCode??null,needsReview:state.needsReview===true};
 }
 export function watchFeedback(status,activity){
  if(!status||!activity||activity.id!==status.activityId)return status;

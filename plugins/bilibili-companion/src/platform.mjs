@@ -10,7 +10,7 @@ export function normalizeMaterial(raw,video,{fullReading=false}={}){
   const ids=new Set();let truncated=false;
   const items=raw.items.map(v=>{
     assert(v&&typeof v.id==='string'&&v.id.length>0&&v.id.length<=300&&!ids.has(v.id)&&(typeof v.text==='string'&&v.text.length>0||typeof v.imageRef==='string'&&v.imageRef.length>0&&v.imageRef.length<=2000),'BILI_MATERIAL_INVALID','Every material row needs a unique valid identity and content');ids.add(v.id);
-    for(const key of ['start','end'])if(v[key]!==undefined)assert(Number.isFinite(v[key])&&v[key]>=0,'BILI_MATERIAL_INVALID','Invalid material time range');
+    for(const key of ['start','end'])if(v[key]!==undefined)assert(Number.isFinite(v[key])&&(v[key]>=0||fullReading&&coverage==='subtitles'),'BILI_MATERIAL_INVALID','Invalid material time range');
     if(v.start!==undefined&&v.end!==undefined)assert(v.end>=v.start,'BILI_MATERIAL_INVALID','Invalid material time range');
     if(typeof v.text==='string'&&v.text.length>30000&&!fullReading)truncated=true;
     if(fullReading)assert(typeof v.text!=='string'||v.text.length<=16*1024*1024,'BILI_FULL_TEXT_CAPACITY','A cue exceeds retained material capacity; it has not been truncated');

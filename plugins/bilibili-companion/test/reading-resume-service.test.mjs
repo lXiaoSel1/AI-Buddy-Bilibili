@@ -29,8 +29,15 @@ async function fixture(t){
   if(method==='ui.bubble')return {ok:true};if(method==='experience.append')return {recorded:true,eventId:payload.eventId};
   if(method==='connections.request'){
    const p=payload.parameters,op=payload.operation.split('.').at(-1);let reading=state.hostRecords.get(p.readingId);
-   if(op==='prepare'){reading={readingMode:'full-v1',readingId:p.readingId,planHash:'plan-'+p.readingId,confirmed:false,phase:'awaiting-confirmation',model:{connectionRef:'model'},config:p.config,parts:[{cid:123,page:1,duration:6}],sheetRef:'sheet',calls:[],progress:{completed:0,total:2},coverage:{images:{completed:0,total:1},cues:{completed:0,total:1},complete:false},needsReview:false,finalProviderRequestId:null};state.hostRecords.set(p.readingId,reading);return clone(reading);}
-   assert.ok(reading,'every host read must refer to a prepared plan');
+   if(op==='prepare'){
+    if(state.nextPrepareFailure){const code=state.nextPrepareFailure;state.nextPrepareFailure=null;throw Object.assign(Error(code),{code});}
+    if(state.requireObservations){const token=payload.contextToken;assert.ok(state.observations.some(x=>x.token===token&&x.kind==='video'));assert.ok(state.observations.some(x=>x.token===token&&x.kind==='subtitles'));}
+    reading={readingMode:'full-v1',readingId:p.readingId,planHash:'plan-'+p.readingId,confirmed:false,phase:'awaiting-confirmation',model:{connectionRef:'model'},config:p.config,parts:[{cid:123,page:1,duration:6}],sheetRef:'sheet',calls:[],progress:{completed:0,total:2},coverage:{images:{completed:0,total:1},cues:{completed:0,total:1},complete:false},needsReview:false,finalProviderRequestId:null};state.hostRecords.set(p.readingId,reading);return clone(reading);}
+   if(!reading){
+    const gate=op==='get'&&state.nextGetGate;
+    if(gate){state.nextGetGate=null;gate.entered.resolve();await gate.release.promise;}
+    throw Object.assign(Error('No checkpoint'),{code:state.missingCheckpointCode??'BILI_FULL_CHECKPOINT_ABSENT'});
+   }
    if(op==='get'){const value=clone(reading),gate=state.nextGetGate;state.nextGetGate=null;if(gate){gate.entered.resolve();await gate.release.promise;}return value;}
    if(op==='confirm'){if(state.nextConfirmFailure){const code=state.nextConfirmFailure;state.nextConfirmFailure=null;throw Object.assign(Error(code),{code});}assert.equal(p.planHash,reading.planHash);assert.equal(p.confirmed,true);reading.confirmed=true;reading.phase='reading';return clone(reading);}
    if(op==='pause'){reading.phase='paused';reading.modelReason='BILI_FULL_PAUSED';return clone(reading);}
@@ -41,7 +48,8 @@ async function fixture(t){
   if(method==='models.request'){state.models.push(clone(payload));const r=state.hostRecords.get(payload.readingId);r.phase='completed';r.progress.completed=2;r.coverage={images:{completed:1,total:1},cues:{completed:1,total:1},complete:true};r.calls=[{stepId:payload.stepId,status:'completed',processed:true,providerRequestId:'provider'}];const result={requestId:'provider',understanding:{summary:'Source-backed fixture',notes:'Visible fixture',evidenceRefs:['frame-1'],completedMaterial:true,shareWorthy:false,commentWorthy:false,shareText:'',interestTags:[]}};return state.modelTextWrap?{requestId:result.requestId,text:state.modelTextWrap(JSON.stringify(result.understanding))}:result;}
   throw Error(method);
  }};
- const platform={async selectVideo(){return video;},async acquireMaterial(){return {videoId:video.videoId,videoCid:123,coverage:'subtitles',complete:true,items:[{id:'subtitle:1',start:0,end:1,text:'Original subtitle'}],readRange:{language:'zh-CN',cid:123}};}};
+ state.observations=[];
+ const platform={async selectVideo({context}){const gate=state.nextSelectGate;state.nextSelectGate=null;if(gate){gate.entered.resolve();await gate.release.promise;}state.observations.push({kind:'video',token:context.contextToken});return video;},async acquireMaterial({context}){state.observations.push({kind:'subtitles',token:context.contextToken});return {videoId:video.videoId,videoCid:123,coverage:'subtitles',complete:true,items:[{id:'subtitle:1',start:0,end:1,text:'Original subtitle'}],readRange:{language:'zh-CN',cid:123}};}};
  const options={databasePath,host,platform,now:()=>Date.parse('2026-11-01T12:00:00Z'),timeZone:'UTC',runtimeOwnerInspector:pid=>({pid,exe:'fixture',birth:'fixture'})};let service=createBilibiliService(options);
  t.after(async()=>{await service.close();rmSync(directory,{recursive:true,force:true});});
  const call=(action,payload={})=>service.dispatch(action,payload,{contextToken:'app'}),readKV=key=>{const db=new DatabaseSync(databasePath,{readOnly:true});try{return JSON.parse(db.prepare('SELECT value FROM a_plugin_kv WHERE key=?').get(key).value);}finally{db.close();}},writeKV=(key,value)=>{const db=new DatabaseSync(databasePath);try{db.prepare('INSERT INTO a_plugin_kv(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,JSON.stringify(value));}finally{db.close();}};
@@ -224,4 +232,74 @@ for(const [name,wrap]of [['leading prose',text=>'Here is the JSON:\n'+text],['tr
 
 test('verified fenced recovery preserves a newer explicit user pause and its failure history',async t=>{
  const f=await fixture(t),legacy=await seedLegacyFenced(f);await f.call('reading.pause',{activityId:legacy.a.id});const view=await f.call('reading.get',{activityId:legacy.a.id}),activity=f.readKV('full-activity-v206:'+legacy.a.id);assert.equal(view.phase,'paused');assert.equal(view.pauseReason,'pause');assert.equal(activity.pauseReason,'pause');assert.equal(currentReadingReason(view),'BILI_FULL_PAUSED');assert.ok(activity.failureHistory.some(entry=>entry.code==='BILI_FULL_MATERIAL_NOT_COMPLETED'&&entry.pauseReason==='pause'));assert.equal(f.state.models.length,0);
+});
+
+test('continuing before a plan re-observes the video and selected subtitles under the new context',async t=>{
+ const f=await fixture(t);f.state.nextPrepareFailure='BILI_FULL_SUBTITLE_TIMEOUT';f.state.requireObservations=true;
+ const paused=await f.call('now',{characterId:'deepseek',visual:true});assert.equal(paused.state,'paused');
+ const result=await f.call('reading.continue',{activityId:paused.id});
+ assert.equal(result.pauseReason,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED');assert.equal(result.failureHistory.at(-1).code,'BILI_FULL_SUBTITLE_TIMEOUT');
+ assert.equal(new Set(f.state.observations.map(x=>x.token)).size,2);assert.equal(f.state.models.length,0);
+});
+
+test('get, pause and stop work for an unplanned zero-call failure and retain the original error',async t=>{
+ const f=await fixture(t);f.state.nextPrepareFailure='SOCIAL_UNOBSERVED_MATERIAL';
+ const failed=await f.call('now',{characterId:'deepseek',visual:true}),activityId=failed.id;
+ const detail=await f.call('reading.get',{activityId});assert.equal(detail.noPlan,true);assert.equal(detail.modelReason,'SOCIAL_UNOBSERVED_MATERIAL');
+ assert.equal((await f.call('reading.pause',{activityId})).paused,true);assert.equal((await f.call('reading.get',{activityId})).phase,'paused');
+ assert.equal((await f.call('reading.stop',{activityId})).stopped,true);const stopped=await f.call('reading.get',{activityId});assert.equal(stopped.phase,'cancelled');assert.equal(stopped.modelReason,'SOCIAL_UNOBSERVED_MATERIAL');assert.equal(f.state.models.length,0);
+});
+
+test('image transport unsupported pauses the reading before a model request',async t=>{
+ const f=await fixture(t);f.state.nextPrepareFailure='MODEL_IMAGE_TRANSPORT_UNSUPPORTED';
+ const result=await f.call('now',{characterId:'deepseek',visual:true});
+ assert.equal(result.state,'paused');assert.equal(result.lastFailureCode,'MODEL_IMAGE_TRANSPORT_UNSUPPORTED');assert.equal(result.needsReview,false);assert.equal(f.state.models.length,0);
+});
+
+test('confirmation recovers a host preview saved before the local plan hash was written',async t=>{
+ const f=await fixture(t),a=await f.call('now',{characterId:'deepseek',visual:true}),activityId=a.id;
+ const plan=f.state.hostRecords.get(activityId);
+ f.writeKV('reading-full-v1:'+activityId,{readingMode:'full-v1',readingId:activityId,results:{},pending:null});
+ const detail=await f.call('reading.get',{activityId});assert.equal(detail.planHash,plan.planHash);assert.equal(detail.noPlan,undefined);
+ const observations=clone(f.state.observations);
+ const result=await f.call('reading.confirm',{activityId,confirmed:true,planHash:plan.planHash});
+ assert.equal(result.state,'completed');assert.deepEqual(f.state.observations,observations);assert.equal(f.state.models.length,1);
+});
+
+test('corrupt or unverifiable checkpoints never become a local no-plan fallback',async t=>{
+ const f=await fixture(t);f.state.nextPrepareFailure='BILI_FULL_SUBTITLE_TIMEOUT';
+ const a=await f.call('now',{characterId:'deepseek',visual:true}),activityId=a.id;
+ f.state.missingCheckpointCode='BILI_VISION_READING_UNAVAILABLE';
+ for(const action of ['reading.get','reading.pause','reading.stop','reading.continue'])await assert.rejects(f.call(action,{activityId}),{code:'BILI_VISION_READING_UNAVAILABLE'});
+ f.state.missingCheckpointCode='BILI_FULL_CHECKPOINT_ABSENT';
+ const key='reading-full-v1:'+activityId;
+ for(const checkpoint of [null,{readingMode:'full-v1',readingId:activityId,results:{},pending:{stepId:'unknown'}},{readingMode:'full-v1',readingId:activityId,results:{},pending:null,planHash:'retained'}]){
+  f.writeKV(key,checkpoint);
+  for(const action of ['reading.get','reading.pause','reading.stop'])await assert.rejects(f.call(action,{activityId}),{code:'BILI_FULL_CHECKPOINT_ABSENT'});
+  await assert.rejects(f.call('reading.continue',{activityId}));
+ }
+ assert.equal(f.state.models.length,0);assert.equal(new Set(f.state.observations.map(x=>x.token)).size,1);
+});
+
+test('Continue refuses a different confirmed host plan without observations or model submission',async t=>{
+ const f=await fixture(t),a=await f.call('now',{characterId:'deepseek',visual:true}),activityId=a.id;
+ const plan=f.state.hostRecords.get(activityId);plan.confirmed=true;plan.phase='reading';plan.planHash='another-plan';
+ const observations=clone(f.state.observations);
+ await assert.rejects(f.call('reading.continue',{activityId}),{code:'BILI_FULL_RESULT_CONFLICT'});
+ assert.deepEqual(f.state.observations,observations);assert.equal(f.state.models.length,0);
+});
+
+for(const action of ['reading.pause','reading.stop'])test('a late missing checkpoint cannot let '+action+' override a newer generic Continue',async t=>{
+ const f=await fixture(t);f.state.nextPrepareFailure='BILI_FULL_SUBTITLE_TIMEOUT';
+ const paused=await f.call('now',{characterId:'deepseek',visual:true}),activityId=paused.id;
+ const gate=f.gateNextGet(),control=f.call(action,{activityId});
+ await gate.entered.promise;
+ const selectGate={entered:deferred(),release:deferred()};f.state.nextSelectGate=selectGate;
+ const attempt=f.call('continue');
+ await selectGate.entered.promise;
+ gate.release.resolve();
+ try{await assert.rejects(control,{code:'BILI_CONTROL_STALE'});}
+ finally{selectGate.release.resolve();await attempt;}
+ assert.equal((await attempt).pauseReason,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED');
+ assert.equal((await f.call('reading.get',{activityId})).phase,'awaiting-confirmation');
 });

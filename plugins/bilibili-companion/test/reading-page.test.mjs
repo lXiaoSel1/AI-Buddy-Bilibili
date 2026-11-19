@@ -30,3 +30,42 @@ test('same-account refresh retries a pending picture and ignores the old respons
 const text=n=>n==null||n===false?'':typeof n==='string'||typeof n==='number'?String(n):Array.isArray(n)?n.map(text).join(''):text(n.children);
 test('refresh invalidates a busy reading action without letting its late finally unlock the new action',async t=>{const release=[];const {page}=fixture(t,{reading:{phase:'reading'},control:action=>action==='reading.pause'?new Promise(resolve=>release.push(()=>resolve(ok({paused:true})))):ok({accepted:true})});t.after(()=>release.forEach(fn=>fn()));await open(page);await page.click('暂停');await page.dispatch('ai-buddy:social-accounts-changed');await page.click('暂停');release[0]();await page.settle();const pause=page.all(n=>n.type==='button').find(n=>text(n)==='暂停');assert.equal(pause.props.disabled,true);release[1]();await page.settle();assert.equal(page.all(n=>n.type==='button').find(n=>text(n)==='暂停').props.disabled,false);});
 test('returning from a pending reading action leaves the next reading usable',async t=>{let release;const {page}=fixture(t,{reading:{phase:'reading'},control:action=>action==='reading.pause'?new Promise(resolve=>{release=()=>resolve(ok({paused:true}));}):ok({accepted:true})});t.after(()=>release?.());await open(page);await page.click('暂停');await page.click('返回观看安排');await open(page);release();await page.settle();assert.equal(page.all(n=>n.type==='button').find(n=>text(n)==='暂停').props.disabled,false);});
+
+for(const lang of ['zh-CN','en'])test('unplanned viewing shows the reason and controls in '+lang,async t=>{
+ const en=lang==='en',{page,calls}=fixture(t,{reading:{readingMode:'full-v1',noPlan:true,confirmed:false,sheetRef:null,modelReason:'MODEL_IMAGE_TRANSPORT_UNSUPPORTED'},lang});
+ await page.settle();await page.click(en?'History':'观看记录');await page.click(en?'View storyboard':'查看分镜');
+ assert.ok(page.text().includes(en?'This viewing has no plan and no progress to resume.':'这次观看还没生成计划，没有可继续的进度。'),page.text());
+ assert.ok(page.text().includes(en?'The current model connection cannot send images. Choose a connection that supports image input.':'当前模型连接无法传图片，请换成支持图片输入的连接。'),page.text());
+ assert.ok(page.text().includes('MODEL_IMAGE_TRANSPORT_UNSUPPORTED'),page.text());
+ assert.ok(page.button(en?'Continue reading':'继续阅读'));
+ assert.ok(page.button(en?'Stop reading':'停止阅读'));
+ assert.equal(calls.filter(x=>x.action==='reading.image').length,0);
+});
+
+for(const lang of ['zh-CN','en'])test('the reading page describes shifted and skipped subtitles in '+lang,async t=>{
+ const en=lang==='en',{page}=fixture(t,{reading:{subtitleNotices:[{cid:123,page:1,reason:'shifted',timebaseShiftSeconds:7200},{cid:456,page:2,reason:'partial'}]},lang});
+ await page.settle();await page.click(en?'History':'观看记录');await page.click(en?'View storyboard':'查看分镜');
+ assert.ok(page.text().includes(en?'P1 · Subtitles were offset by 2 hours. The timing has been corrected.':'P1 · 字幕整体偏了 2 小时，已校正。'),page.text());
+ assert.ok(page.text().includes(en?'P2 · The subtitle timing did not match the video. This subtitle track was skipped.':'P2 · 这条字幕的时间和视频对不上，已跳过字幕。'),page.text());
+});
+
+test('the reading page identifies a duplicate cue by part and retains its original code',async t=>{
+ const {page}=fixture(t,{reading:{modelReason:'BILI_FULL_CUES_INVALID',failureDetails:{page:3,reason:'duplicate-cue'}}});
+ await open(page);
+ assert.ok(page.text().includes('P3 · 字幕编号重复'),page.text());
+ assert.ok(page.text().includes('BILI_FULL_CUES_INVALID'),page.text());
+});
+
+test('legacy error values and malformed notice lists leave the reading page usable',async t=>{
+ const {page}=fixture(t,{reading:{modelReason:'constructor',subtitleNotices:{reason:'partial'}}});
+ await open(page);
+ assert.ok(page.text().includes('当前阅读已暂停'),page.text());
+ assert.ok(page.button('继续阅读'));
+});
+
+test('an unknown subtitle structure reason falls back to the generic structure message',async t=>{
+ const {page}=fixture(t,{reading:{modelReason:'BILI_FULL_CUES_INVALID',failureDetails:{page:3,reason:'__proto__'}}});
+ await open(page);
+ assert.ok(page.text().includes('字幕结构不符合要求'),page.text());
+ assert.ok(page.text().includes('BILI_FULL_CUES_INVALID'),page.text());
+});

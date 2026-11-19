@@ -3,7 +3,7 @@ import {UNDERSTANDING_SCHEMA} from './prompts.mjs';
 import {parseModelResponse} from './model-response.mjs';
 import {validVisualUnderstanding,visualRequest} from './visual-reading.mjs';
 
-export const isFullReadingPause=code=>typeof code==='string'&&(code.startsWith('BILI_FULL_')||['BILI_MEDIA_BUSY','BILI_VISION_UNCERTAIN','SOCIAL_MODEL_RESULT_UNKNOWN','BILI_VISION_MODEL_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_CACHE_MISSING','SOCIAL_MODEL_NOT_SUBMITTED'].includes(code));
+export const isFullReadingPause=code=>typeof code==='string'&&(code.startsWith('BILI_FULL_')||['BILI_MEDIA_BUSY','BILI_VISION_UNCERTAIN','SOCIAL_MODEL_RESULT_UNKNOWN','BILI_VISION_MODEL_UNSUPPORTED','MODEL_IMAGE_TRANSPORT_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_CACHE_MISSING','SOCIAL_MODEL_NOT_SUBMITTED'].includes(code));
 const unpack=v=>v?.reading??v;
 export const parseFullReadingUnderstanding=result=>parseModelResponse(result);
 // Host confirmation/coverage are facts; local receipts and uncertain submissions
@@ -49,7 +49,10 @@ export async function runFullReading({a,c,lease,host,materials,signal,check,read
  const persist=()=>writeRecord(record),request=async(operation,parameters={})=>{await check();const payload=visualRequest({a,c,lease,operation:'video.fullReading.'+operation,parameters});payload.video={videoId:a.video.videoId,cid:a.video.cid};const value=await host.invoke('connections.request',payload,{signal});await check();return unpack(value);};
  persist();
  let state;
- if(record.planHash)state=await request('get');else{
+ if(record.planHash){
+  state=await request('get');
+  assert(state.planHash===record.planHash,'BILI_FULL_RESULT_CONFLICT','The host must retain the original frozen plan');
+ }else{
   // The host already observed the complete subtitle response. Only identify the
   // chosen track here: sending its entire text back would breach the 1 MiB RPC
   // envelope before the host can construct its verified, bounded reading pages.
@@ -59,6 +62,7 @@ export async function runFullReading({a,c,lease,host,materials,signal,check,read
  if(!state.confirmed){record.phase='awaiting-confirmation';persist();return {awaitingConfirmation:true,reading:state};}
  assert(!Object.keys(record.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The paid invalid response is retained; start a separate reading instead of replaying it');
  assert(!record.pending,'BILI_VISION_UNCERTAIN','An earlier model submission is unknown and cannot be replayed');
+ assert(state.needsReview!==true&&!state.calls?.some(call=>['submitted','unknown'].includes(call.status)),'BILI_VISION_UNCERTAIN','A recorded host submission needs review');
  let last=Object.values(record.results).at(-1),retry=0;if(last&&!last.material&&readResult)last=readResult(last.stepId)??last;
  while(state.phase!=='completed'){
   await check();const batch=await request('read',retry?{shrink:true}:{});assert(batch?.batchId&&Array.isArray(batch.material?.items)&&batch.material.items.length,'BILI_FULL_BATCH_MISMATCH','The host must provide an immutable reading batch');
