@@ -303,3 +303,52 @@ for(const action of ['reading.pause','reading.stop'])test('a late missing checkp
  assert.equal((await attempt).pauseReason,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED');
  assert.equal((await f.call('reading.get',{activityId})).phase,'awaiting-confirmation');
 });
+
+async function seedPriorSummaryRefs(f){
+ const legacy=await seedLegacyFenced(f);
+ const receipt=legacy.host.recoveredResults[0];
+ const earlier='completed-earlier-note';
+ const raw={...receipt.understanding,evidenceRefs:[...receipt.understanding.evidenceRefs,earlier]};
+ legacy.invalid.result={requestId:receipt.providerRequestId,text:JSON.stringify(raw)};
+ f.writeKV(legacy.resultRef,legacy.invalid);
+ const validation={rule:'bili-full-summary-evidence-v2',ignoredEvidenceRefs:[earlier]};
+ Object.assign(receipt,{stepKind:'summary',fullReadingValidation:validation,result:clone(legacy.invalid.result)});
+ Object.assign(legacy.host.calls[0],{stepKind:'summary',inputHash:receipt.inputHash});
+ const checkpoint=f.readKV(legacy.key);
+ checkpoint.coverage={complete:true};
+ f.writeKV(legacy.key,checkpoint);
+ return {...legacy,receipt,validation};
+}
+
+test('Continue accepts an original paid summary via bound host validation without model replay',async t=>{
+ const f=await fixture(t),{a,key,stepId,resultRef,invalid,receipt,validation}=await seedPriorSummaryRefs(f);
+ const completed=await f.call('reading.continue',{activityId:a.id});
+ assert.equal(completed.state,'completed');
+ assert.equal(f.state.models.length,0);
+ const record=f.readKV(key),derived=f.readKV(record.results[stepId].resultRef);
+ assert.deepEqual(derived.understanding,receipt.understanding);
+ assert.deepEqual(derived.fullReadingValidation,validation);
+ assert.deepEqual(f.readKV(resultRef),invalid);
+ await f.call('reading.continue',{activityId:a.id});
+ assert.deepEqual(f.readKV(key),record);
+ assert.equal(f.state.models.length,0);
+});
+
+test('Continue rejects a host summary projection that does not match the retained raw response',async t=>{
+ const f=await fixture(t),{a,key,receipt}=await seedPriorSummaryRefs(f),before=f.readKV(key);
+ receipt.result.text=JSON.stringify({...JSON.parse(receipt.result.text),notes:'changed'});
+ await assert.rejects(f.call('reading.continue',{activityId:a.id}),{code:'BILI_FULL_RESULT_CONFLICT'});
+ assert.deepEqual(f.readKV(key),before);
+ assert.equal(f.state.models.length,0);
+});
+
+test('the schedule Continue control reaches the same paid summary recovery',async t=>{
+ const f=await fixture(t),{a,resultRef,invalid}=await seedPriorSummaryRefs(f);
+ const history=await f.call('history.list');
+ assert.equal(history.find(record=>record.id===a.id).readingStage,'summary');
+ const completed=await f.call('continue');
+ assert.equal(completed.id,a.id);
+ assert.equal(completed.state,'completed');
+ assert.equal(f.state.models.length,0);
+ assert.deepEqual(f.readKV(resultRef),invalid);
+});

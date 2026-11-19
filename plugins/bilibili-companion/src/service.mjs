@@ -10,7 +10,7 @@ import {understandingPrompt,publicCommentPrompt} from './prompts.mjs';
 import {inspectRuntimeProcess,runtimeOwnerAlive} from '../../../shared/runtime-owner.mjs';
 import {runVisualReading,isVisualPause,visualRequest,validVisualUnderstanding,retainVisualReceipt} from './visual-reading.mjs';
 import {parseModelResponse} from './model-response.mjs';
-import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadingRecord,recoverNotSentFullReading,parseFullReadingUnderstanding} from './full-reading.mjs';
+import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadingRecord,recoverNotSentFullReading,verifiedFullReadingUnderstanding} from './full-reading.mjs';
 
 const parse=v=>v?JSON.parse(v):null;
 const terminal=new Set(['completed','partial','failed','cancelled']);
@@ -104,11 +104,12 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   };
   const recoverableZeroCall=(a,state)=>a?.connectionRef===settings().connectionRef&&zeroCallHost(a,checkpoint(a.id),state);
   function retainZeroCallFailure(a,reason){const {zeroCallRecoveryFailures,...failure}=a;a.zeroCallRecoveryFailures=[...(zeroCallRecoveryFailures??[]),{...failure,recoveryReason:reason,recoveredAt:now()}];}
+  const readingStage=state=>state?.coverage?.complete===true||state?.calls?.at(-1)?.stepKind==='summary'?'summary':null;
   function fullReadingView(a,state){
     const {recoveredResults,notSentResults,...safeState}=state;state=safeState;
     const local=checkpoint(a.id),confirmationAccepted=state.confirmed===true&&a.pauseReason==='BILI_FULL_PLAN_CONFIRMATION_REQUIRED'&&['reading','completed'].includes(state.phase),phase=terminal.has(a.state)?a.state:a.state==='paused'&&!confirmationAccepted&&!(state.confirmed!==true&&state.phase==='awaiting-confirmation')?'paused':state.phase,needsReview=state.needsReview===true||a.needsReview===true||!!local?.pending;
     const currentReason=needsReview||['paused','failed','partial','cancelled','unknown'].includes(phase),pauseReason=['paused','cancelled'].includes(phase)&&!confirmationAccepted?a.pauseReason??null:null;
-    return {...state,activityId:a.id,activityRevision:a.statusRevision??0,readingRevision:state.revision??0,pauseReason,phase,modelReason:currentReason?a.lastFailureCode??state.modelReason??null:null,needsReview,failureDetails:currentReason?a.failureDetails??null:null,failureCauseCode:currentReason?a.failureCauseCode??null:null,recoverableZeroCall:recoverableZeroCall(a,state),results:Object.values(local?.results??{}).map(x=>x.understanding?x:readFullResult(a.id,x.stepId)).filter(x=>x?.understanding).map(x=>({stepId:x.stepId,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};
+    return {...state,readingStage:readingStage(state),activityId:a.id,activityRevision:a.statusRevision??0,readingRevision:state.revision??0,pauseReason,phase,modelReason:currentReason?a.lastFailureCode??state.modelReason??null:null,needsReview,failureDetails:currentReason?a.failureDetails??null:null,failureCauseCode:currentReason?a.failureCauseCode??null:null,recoverableZeroCall:recoverableZeroCall(a,state),results:Object.values(local?.results??{}).map(x=>x.understanding?x:readFullResult(a.id,x.stepId)).filter(x=>x?.understanding).map(x=>({stepId:x.stepId,summary:x.understanding.summary,notes:x.understanding.notes,evidenceRefs:x.understanding.evidenceRefs}))};
   }
   function activities(accountId=null,states=null,limit=null){
     const old=[],extra=["(key GLOB 'video-activity:*' OR key GLOB 'visual-activity-v21:*' OR key GLOB 'full-activity-v206:*')"],args=[];if(accountId!==null){old.push('account_id=?');extra.push("json_extract(value,'$.accountId')=?");args.push(accountId);}if(states){const marks=states.map(()=>'?').join(',');old.push('state IN ('+marks+')');extra.push("json_extract(value,'$.state') IN ("+marks+')');args.push(...states);}const end=' ORDER BY rowid DESC'+(limit?' LIMIT '+limit:'');
@@ -117,7 +118,16 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   const activityRevisions=new Map();
   const save=a=>{a.statusRevision=Math.max(a.statusRevision??0,activityRevisions.get(a.id)??0)+1;activityRevisions.set(a.id,a.statusRevision);a.updatedAt=now();if(a.readingMode==='full-v1')store.set('full-activity-v206:'+a.id,a);else if(a.visual===true)store.set('visual-activity-v21:'+a.id,a);else if(a.videoPlan===true)store.set('video-activity:'+a.id,a);else db.prepare('INSERT INTO bili_activities(id,account_id,character_id,day,state,data) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET state=excluded.state,data=excluded.data').run(a.id,a.accountId,a.characterId,a.day,a.state,JSON.stringify(a));return a;};
   function readFullResult(activityId,stepId){const local=checkpoint(activityId),entry=local?.results?.[stepId]??local?.invalidReceipts?.[stepId];return entry?.understanding?entry:store.get(entry?.resultRef??'full-result-v206:'+activityId+':'+stepId,null);}
-  function writeFullResult(activityId,value,{priorInvalid}={}){let key='full-result-v206:'+activityId+':'+value.stepId;if(priorInvalid){const local=checkpoint(activityId),entry=local?.invalidReceipts?.[value.stepId],parsed=parseFullReadingUnderstanding(priorInvalid.result),ids=new Set(value.material?.items?.map(item=>item.id)??[]);assert(entry&&!local.results?.[value.stepId]&&entry.providerRequestId===value.providerRequestId&&JSON.stringify(readFullResult(activityId,value.stepId))===JSON.stringify(priorInvalid)&&priorInvalid.schemaInvalid===true&&priorInvalid.stepId===value.stepId&&priorInvalid.providerRequestId===value.providerRequestId&&validVisualUnderstanding(parsed,ids)&&parsed.completedMaterial===true&&JSON.stringify(parsed)===JSON.stringify(value.understanding)&&JSON.stringify(priorInvalid.material)===JSON.stringify(value.material),'BILI_FULL_RESULT_CONFLICT','A derived result must match the retained original invalid receipt');key='full-recovered-result-v207:'+activityId+':'+value.stepId;}const prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','An original batch receipt cannot be overwritten');if(!prior)store.set(key,value);return key;}
+  function writeFullResult(activityId,value,{priorInvalid}={}){let key='full-result-v206:'+activityId+':'+value.stepId;if(priorInvalid){const local=checkpoint(activityId),entry=local?.invalidReceipts?.[value.stepId],parsed=verifiedFullReadingUnderstanding(priorInvalid.result,value.material,'summary',value.fullReadingValidation),ids=new Set(value.material?.items?.map(item=>item.id)??[]);assert(entry&&!local.results?.[value.stepId]&&entry.providerRequestId===value.providerRequestId&&JSON.stringify(readFullResult(activityId,value.stepId))===JSON.stringify(priorInvalid)&&priorInvalid.schemaInvalid===true&&priorInvalid.stepId===value.stepId&&priorInvalid.providerRequestId===value.providerRequestId&&validVisualUnderstanding(parsed,ids)&&parsed.completedMaterial===true&&JSON.stringify(parsed)===JSON.stringify(value.understanding)&&JSON.stringify(priorInvalid.material)===JSON.stringify(value.material),'BILI_FULL_RESULT_CONFLICT','A derived result must match the retained original invalid receipt');key='full-recovered-result-v207:'+activityId+':'+value.stepId;}const prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_FULL_RESULT_CONFLICT','An original batch receipt cannot be overwritten');if(!prior)store.set(key,value);return key;}
+  function applyReceiptRecovery(current,local,state){
+    const next=recoverFullReadingRecord(local,state,(result,options)=>writeFullResult(current.id,result,options),stepId=>readFullResult(current.id,stepId));if(next===local)return;
+    const recoveredStep=Object.keys(local.invalidReceipts??{}).find(stepId=>!next.invalidReceipts?.[stepId]&&next.results?.[stepId]&&next.recoveredInvalidReceipts?.[stepId]);
+    const recoveredInvalid=Boolean(recoveredStep),validation=next.recoveredInvalidReceipts?.[recoveredStep]?.fullReadingValidation;store.set('reading-full-v1:'+current.id,next);
+    if(current.lastFailureCode||recoveredInvalid&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode??null,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now(),...(validation?{recovery:validation.rule,ignoredEvidenceRefCount:validation.ignoredEvidenceRefs.length}:{})}];
+    if(recoveredInvalid&&current.state==='paused'&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.pauseReason='receipt-recovered';
+    if(current.state==='failed'){current.receiptRecoveryFailures=[...(current.receiptRecoveryFailures??[]),{code:current.lastFailureCode,at:current.updatedAt,recoveredAt:now()}];current.state='paused';current.pauseReason='receipt-recovered';}
+    const invalid=Object.keys(next.invalidReceipts??{}).length>0;current.needsReview=next.needsReview===true||!!next.pending;current.modelState=invalid?'returned':'prepared';current.lastFailureCode=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':null;if(invalid){current.state='paused';current.pauseReason='BILI_FULL_MATERIAL_NOT_COMPLETED';}save(current);
+  }
   function writeVisualReceipt(activityId,value){const key='visual-receipt-v207:'+activityId+':'+value.stepId,prior=store.get(key,null);assert(!prior||JSON.stringify(prior)===JSON.stringify(value),'BILI_VISION_RESULT_CONFLICT','An original visual response cannot be overwritten');if(!prior)store.set(key,value);return key;}
   function recoverVisualReceipt(a){
     const local=store.get('reading-v21:'+a.id,null),receipt=local?.pending?store.get('visual-receipt-v207:'+a.id+':'+local.pending.stepId,null):null;if(!receipt||a.state==='cancelled')return;
@@ -514,7 +524,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
       if(next.shareMode==='record-only')for(const rec of db.prepare("SELECT id,data FROM bili_outbox WHERE account_id=? AND kind='share' AND state='pending'").all(accountId))if(parse(rec.data).kind==='bilibili-share')db.prepare("UPDATE bili_outbox SET state='cancelled' WHERE id=?").run(rec.id);
       return next;
     }
-    if(action==='history.list')return activities(accountId,null,200).map(a=>{return {...a,comments:db.prepare('SELECT state,data FROM bili_comments WHERE account_id=? AND activity_id=? ORDER BY rowid').all(accountId,a.id).map(c=>({...parse(c.data),state:c.state}))};});
+    if(action==='history.list')return activities(accountId,null,200).map(a=>{return {...a,readingStage:a.readingMode==='full-v1'?readingStage(checkpoint(a.id)):null,comments:db.prepare('SELECT state,data FROM bili_comments WHERE account_id=? AND activity_id=? ORDER BY rowid').all(accountId,a.id).map(c=>({...parse(c.data),state:c.state}))};});
     if(action==='activity.read'){const a=row(payload.id);assert(a?.accountId===accountId,'BILI_NOT_FOUND','Activity was not found');return a;}
     if(action==='comments.list')return db.prepare('SELECT state,data FROM bili_comments WHERE account_id=? ORDER BY rowid DESC').all(accountId).map(v=>({...parse(v.data),state:v.state}));
     if(action==='reading.pending.list'){
@@ -547,12 +557,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
           if(expectedEpoch===controlEpoch()&&revision===readingControl(a.id)&&current.state!=='cancelled'&&local&&(local.pending||current.needsReview||current.modelState==='started'||(state.recoveredResults??[]).some(receipt=>receipt.receiptKind!=='invalid'&&local.invalidReceipts?.[receipt.stepId]&&!local.results?.[receipt.stepId]))&&(state.recoveredResults??[]).length){
             store.transaction(()=>{
               assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer control superseded receipt recovery');
-              const next=recoverFullReadingRecord(local,state,(result,options)=>writeFullResult(a.id,result,options),stepId=>readFullResult(a.id,stepId));if(next===local)return;
-              const recoveredInvalid=Object.keys(local.invalidReceipts??{}).some(stepId=>!next.invalidReceipts?.[stepId]&&next.results?.[stepId]&&next.recoveredInvalidReceipts?.[stepId]);store.set('reading-full-v1:'+a.id,next);
-              if(current.lastFailureCode||recoveredInvalid&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode??null,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now()}];
-              if(recoveredInvalid&&current.state==='paused'&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.pauseReason='receipt-recovered';
-              if(current.state==='failed'){current.receiptRecoveryFailures=[...(current.receiptRecoveryFailures??[]),{code:current.lastFailureCode,at:current.updatedAt,recoveredAt:now()}];current.state='paused';current.pauseReason='receipt-recovered';}
-              const invalid=Object.keys(next.invalidReceipts??{}).length>0;current.needsReview=next.needsReview===true||!!next.pending;current.modelState=invalid?'returned':'prepared';current.lastFailureCode=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':null;if(invalid){current.state='paused';current.pauseReason='BILI_FULL_MATERIAL_NOT_COMPLETED';}save(current);
+              applyReceiptRecovery(current,local,state);
             });
           }
           return fullReadingView(row(a.id),state);
@@ -605,7 +610,10 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
         if(action==='reading.confirm'||action==='reading.continue'){
           assertCurrent(expectedEpoch);const revision=readingControl(a.id),original=JSON.stringify(a),originalCheckpoint=JSON.stringify(record());let mutation=null;const guard=()=>{assertOpen();assertCurrent(expectedEpoch);assert(readingControl(a.id)===revision,'BILI_CONTROL_STALE','A newer reading control superseded this request');mutation?.guard();};
           try{
-          modelPin(a);assert(!a.needsReview&&a.modelState!=='started'&&!record()?.pending,'BILI_VISION_UNCERTAIN','An unknown submission cannot be replayed');assert(!Object.keys(record()?.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The original paid invalid response is retained and cannot be replayed');
+          modelPin(a);assert(!a.needsReview&&a.modelState!=='started'&&!record()?.pending,'BILI_VISION_UNCERTAIN','An unknown submission cannot be replayed');
+          const invalidAtStart=Object.keys(record()?.invalidReceipts??{}).length>0;
+          const requireValidReceipt=()=>assert(!Object.keys(record()?.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The original paid invalid response is retained and cannot be replayed');
+          if(action!=='reading.continue'||a.state!=='paused')requireValidReceipt();
           let value,hostOnlyPreview=null;
           if(action==='reading.confirm'){
             assert(payload.confirmed===true,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Explicit confirmation of this frozen plan is required');
@@ -629,6 +637,13 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
             return await tick(principal,accountId,true,expectedEpoch,a.id,guard);
           }
           const state=value.reading??value;guard();assert(state.readingId===a.id&&typeof state.planHash==='string'&&state.planHash===(record()?.planHash??hostOnlyPreview?.planHash),'BILI_FULL_RESULT_CONFLICT','The host must retain the original frozen plan');assert(state.confirmed===true,'BILI_FULL_PLAN_CONFIRMATION_REQUIRED','Preview and confirm the full plan first');assert(state.needsReview!==true&&(!Array.isArray(state.calls)||!state.calls.some(x=>['submitted','unknown'].includes(x.status))),'BILI_VISION_UNCERTAIN','An unknown submission cannot be resumed');
+          if(action==='reading.continue'&&invalidAtStart){
+            const receipt=state.recoveredResults?.find(receipt=>receipt.fullReadingValidation!==undefined);
+            if(receipt&&record()?.invalidReceipts?.[receipt.stepId]){
+              store.transaction(()=>{guard();assert(!inflight.has(a.id)&&JSON.stringify(row(a.id))===original&&JSON.stringify(record())===originalCheckpoint,'BILI_CONTROL_STALE','The invalid receipt changed while recovery was being checked');applyReceiptRecovery(row(a.id),record(),state);});
+            }
+            requireValidReceipt();
+          }
           if(action==='reading.continue'&&a.state==='failed'){
             assert(recoverableZeroCall(a,state),'BILI_VISION_UNCERTAIN','Only a host-proven zero-call lease failure can be resumed');
             const c=await readingContext(a,principal,expectedEpoch);guard();assert(c.accountId===a.accountId&&c.characterId===a.characterId&&c.personaId===a.personaId&&c.lifeId===a.lifeId&&c.operationId===a.operationId&&c.generation===a.generation,'BILI_LIFE_CHANGED','This reading belongs to another account or life');eligible(accountId,{...a,automatic:false});
@@ -671,7 +686,7 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
     if(action==='pause'||action==='user.return'){if(action==='pause')store.set('pausedByUser',true);revokeControl(accountId,action==='pause'?'pause':'user-return');store.set('chatActive',action==='user.return');return {paused:true,reason:action};}
     if(action==='stop'){stopAccount(accountId);return {stopped:true};}
     if(action==='today.allow'){assert(typeof payload.allowed==='boolean','BILI_PERMISSION_INVALID','Choose whether watching is allowed today');store.set(`day:${accountId}:${clock().day}`,payload.allowed);if(!payload.allowed){db.prepare("UPDATE bili_outbox SET state='cancelled' WHERE account_id=? AND kind='share' AND state='pending'").run(accountId);revokeControl(accountId,'today-forbidden');}return {day:clock().day,allowed:payload.allowed};}
-    if(action==='continue'){assert(!store.get('stopped',false),'BILI_STOPPED','Create a new explicit activity after stopping');store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch);}
+    if(action==='continue'){assert(!store.get('stopped',false),'BILI_STOPPED','Create a new explicit activity after stopping');const paused=activities(accountId,['paused'])[0],local=paused?.readingMode==='full-v1'?checkpoint(paused.id):null;if(readingStage(local)==='summary'&&Object.keys(local?.invalidReceipts??{}).length)return dispatchInternal('reading.continue',{activityId:paused.id},principal,expectedEpoch,expectedCommentEpoch);store.set('pausedByUser',false);store.set('chatActive',false);return tick(principal,accountId,true,expectedEpoch);}
     if(action==='idle'){store.set('chatActive',false);if(settings().resumeMode!=='idle')return {resumed:false,reason:'manual-resume'};return tick(principal,accountId,false,expectedEpoch);}
     if(action==='tick')return tick(principal,accountId,false,expectedEpoch);
     if(action==='comment.send'){assert(settings().commentReview!=='preview','BILI_COMMENT_PREVIEW_REQUIRED','Comments are set to preview before posting');return sendComment(payload.activityId,principal,{expectedEpoch,expectedCommentEpoch});}

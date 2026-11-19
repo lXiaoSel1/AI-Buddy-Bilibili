@@ -12,7 +12,7 @@ export function readingActivityStatus(activity,state,id){
  const phase=({reading:'understanding','awaiting-confirmation':'paused',unknown:'paused',stopped:'cancelled'})[state.phase]??state.phase;
  if(!['selecting','acquiring-material','understanding','recording','paused','completed','partial','failed','cancelled'].includes(phase))return activity;
  const reason=currentReadingReason(state);
- return {...activity,state:phase,statusRevision:revision(state.activityRevision),readingRevision:revision(state.readingRevision),pauseReason:reason,lastFailureCode:reason?state.modelReason??null:null,failureDetails:state.failureDetails??null,failureCauseCode:state.failureCauseCode??null,needsReview:state.needsReview===true};
+ return {...activity,state:phase,readingStage:state.readingStage??null,statusRevision:revision(state.activityRevision),readingRevision:revision(state.readingRevision),pauseReason:reason,lastFailureCode:reason?state.modelReason??null:null,failureDetails:state.failureDetails??null,failureCauseCode:state.failureCauseCode??null,needsReview:state.needsReview===true};
 }
 export function readingWatchStatus(previous,state,id){
  if(!previous||previous.activityId!==id)return previous;
