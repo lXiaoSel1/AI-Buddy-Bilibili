@@ -75,15 +75,23 @@ export function createBilibiliHttpPlatform({request,now=Date.now,anonymousReadOn
         if(track){
           const subtitleURL=publicSubtitleURL(track.subtitle_url);
           const subtitle=await json(subtitleURL.href,{connectionRef,context,lease,signal,credential:'none',maxResponseBytes:fullReading?64*1024*1024:4*1024*1024});
-          assert(Array.isArray(subtitle?.body)&&subtitle.body.length,'BILI_SUBTITLE_EMPTY','Subtitle track is empty');
+          assert(Array.isArray(subtitle?.body)&&subtitle.body.length,fullReading?'BILI_FULL_CUES_INVALID':'BILI_SUBTITLE_EMPTY','Subtitle track is empty',{cid:v.cid,page:v.currentPage??1,reason:'empty-track'});
           assert(subtitle.body.length<=(fullReading?200000:20000),'BILI_FULL_TEXT_CAPACITY','The subtitle track exceeds retained material capacity; no rows were dropped');
-          const items=subtitle.body.map((line,index)=>({id:`subtitle:${index+1}`,text:String(line.content??''),start:Number(line.from),end:Number(line.to)})).filter(v=>v.text&&Number.isFinite(v.start)&&Number.isFinite(v.end)&&v.start>=0&&v.end>=v.start);
-          assert(items.length===subtitle.body.length,'BILI_SUBTITLE_INVALID','Subtitle track contained invalid rows');
+          const items=subtitle.body.map((line,index)=>{
+            if(fullReading){
+              const part={cid:v.cid,page:v.currentPage??1};
+              assert(typeof line?.content==='string'&&line.content.trim(),'BILI_FULL_CUES_INVALID','Subtitle cue text is empty or invalid',{...part,reason:'invalid-text'});
+              assert(Number.isFinite(line.from)&&Number.isFinite(line.to)&&line.to>=line.from,'BILI_FULL_CUES_INVALID','Subtitle cue times are invalid',{...part,reason:'invalid-time'});
+              return {id:`subtitle:${index+1}`,text:line.content,start:line.from,end:line.to};
+            }
+            return {id:`subtitle:${index+1}`,text:String(line.content??''),start:Number(line.from),end:Number(line.to)};
+          });
+          assert(fullReading||items.every(v=>v.text&&Number.isFinite(v.start)&&Number.isFinite(v.end)&&v.start>=0&&v.end>=v.start),'BILI_SUBTITLE_INVALID','Subtitle track contained invalid rows');
           // Signed query strings are never stored in notes, model inputs or source references.
           return normalizeMaterial({videoId:v.videoId,videoCid:v.cid,coverage:'subtitles',complete:fullReading||v.pageCount===1,items,sourceRefs:[v.url,`${subtitleURL.origin}${subtitleURL.pathname}`],readRange:{part:v.currentPage??1,parts:v.pageCount,cid:v.cid,language:track.lan,from:items[0].start,to:items.at(-1).end,scope:'subtitle-track'},coverageNotes:fullReading?'取得该P完整字幕轨道；逐字符分页和画面覆盖分别核对。':v.pageCount===1?'取得完整字幕轨道；没有声称读懂字幕以外画面。':'只读取第一分P字幕，未看完整个多分P视频。',fetchedAt:now()},v,{fullReading});
         }
         failureCode='BILI_NO_SUBTITLE';
-      }catch(error){if(signal?.aborted||['BILI_LOGIN_EXPIRED','BILI_REQUEST_RESTRICTED'].includes(error.code))throw error;const code=typeof error.code==='string'?error.code:null;if(fullReading)throw fail(code?.startsWith('BILI_FULL_')?code:error.name==='TimeoutError'?'BILI_FULL_SUBTITLE_TIMEOUT':'BILI_FULL_SUBTITLE_UNAVAILABLE','The subtitle acquisition failed; complete reading is paused rather than dropping its text');failureCode=code??(error.name==='TimeoutError'?'BILI_MATERIAL_TIMEOUT':'BILI_MATERIAL_UNAVAILABLE');}
+      }catch(error){if(signal?.aborted||['BILI_LOGIN_EXPIRED','BILI_REQUEST_RESTRICTED'].includes(error.code))throw error;const code=typeof error.code==='string'?error.code:null;if(fullReading&&code==='BILI_FULL_CUES_INVALID')throw error;if(fullReading)throw fail(code?.startsWith('BILI_FULL_')?code:error.name==='TimeoutError'?'BILI_FULL_SUBTITLE_TIMEOUT':'BILI_FULL_SUBTITLE_UNAVAILABLE','The subtitle acquisition failed; complete reading is paused rather than dropping its text');failureCode=code??(error.name==='TimeoutError'?'BILI_MATERIAL_TIMEOUT':'BILI_MATERIAL_UNAVAILABLE');}
       return normalizeMaterial({videoId:v.videoId,coverage:'description',complete:false,items:[{id:'description:1',text:`标题：${v.title}\n简介：${v.description||'未提供简介'}`}],sourceRefs:[v.url],readRange:{scope:'title-description',part:1,parts:v.pageCount},coverageNotes:`仅了解标题和简介；字幕/画面/ASR未取得（${failureCode}）。`,fetchedAt:now()},v);
     },
     async sendComment({connectionRef,context,lease,video,text,idempotencyKey,signal}){

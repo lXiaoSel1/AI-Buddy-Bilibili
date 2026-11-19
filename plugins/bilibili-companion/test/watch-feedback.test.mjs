@@ -66,3 +66,23 @@ test('recent previous completions cannot impersonate a newly pending watch',asyn
 test('settings let their controls move below readable text rather than squeeze the note into a character column',async t=>{
  const {page}=fixture(t);await page.settle();await page.click('设置');const css=page.styles.map(x=>x.textContent).join('\n');assert.ok(!/\.bili-seg\{flex-wrap:nowrap\}/.test(css));assert.match(css,/\.bili-srow\{[^}]*flex-wrap:wrap/);assert.match(css,/\.bili-srow>div:first-child\{[^}]*flex:1 1 2\d\dpx/);assert.match(css,/\.bili-srow>:last-child\{[^}]*max-width:100%/);
 });
+
+for(const lang of ['zh-CN','en'])test(lang+': schedule shows the actual paused summary phase and shared reason',async t=>{
+ const en=lang==='en',paused=record({state:'paused',readingMode:'full-v1',readingStage:'summary',lastFailureCode:'BILI_FULL_MATERIAL_NOT_COMPLETED'});
+ const {page}=fixture(t,{lang,history:[paused]});
+ await page.settle();
+ const text=page.text();
+ assert.ok(text.includes(en?'Paused while organizing notes':'汇总感想时暂停'),text);
+ assert.ok(text.includes(en?'The frames and subtitles have been read; the notes are not complete.':'画面与字幕已读完，感想尚未完成。'),text);
+ assert.ok(text.includes(en?'The model returned an incomplete schema or evidence.':'模型已返回，但字段或证据不完整。'),text);
+});
+
+test('the current schedule card sends the activity it is displaying',async t=>{
+ let request;
+ const preview=record({id:'unconfirmed-preview',readingMode:'full-v1',state:'paused',pauseReason:'BILI_FULL_PLAN_CONFIRMATION_REQUIRED'});
+ const visible=record({id:'visible-summary',readingMode:'full-v1',state:'paused',readingStage:'summary'});
+ const {page}=fixture(t,{history:[preview,visible],over:{'reading.pending.list':()=>ok([preview]),continue:payload=>{request=payload;return ok({...visible,state:'completed'});}}});
+ await page.settle();
+ await page.click(button(page,'继续'));
+ assert.equal(request.activityId,visible.id);
+});

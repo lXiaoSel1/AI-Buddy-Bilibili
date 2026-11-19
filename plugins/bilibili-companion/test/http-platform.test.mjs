@@ -14,7 +14,7 @@ const make=(options={})=>{
     if(u.pathname==='/x/web-interface/popular')return {status:200,json:{code:0,data:{list:[{bvid:'BVcats1234',title:'可爱猫咪',desc:'猫'},{bvid:'BVmarine123',title:'海洋纪录片',desc:'海洋'}]}}};
     if(u.pathname==='/x/web-interface/nav')return {status:200,json:{code:0,data:{wbi_img:images}}};
     if(u.pathname==='/x/player/wbi/v2')return {status:200,json:{code:0,data:{subtitle:{subtitles:options.noSubs?[]:[{lan:'zh-CN',subtitle_url:options.badURL??'//aisubtitle.hdslb.com/fixture.json?auth_key=ephemeral-fixture'}]}}}};
-    if(u.hostname==='aisubtitle.hdslb.com')return {status:200,json:{body:[{from:0,to:10,content:'海洋覆盖大部分地表。'},{from:10,to:30,content:'各种动物生活在其中。'}]}};
+    if(u.hostname==='aisubtitle.hdslb.com')return {status:200,json:{body:options.subtitleBody??[{from:0,to:10,content:'海洋覆盖大部分地表。'},{from:10,to:30,content:'各种动物生活在其中。'}]}};
     if(u.pathname==='/x/v2/reply/add')return {status:200,json:options.commentResult??{code:0,data:{rpid:778899}}};
     throw Error('Unexpected fixture URL');
   }});
@@ -81,4 +81,13 @@ test('reply/add accepts positive safe integers and bounded nonzero decimal strin
   for(const rpid of [1,Number.MAX_SAFE_INTEGER,'0001','123456789012345678901234567890']){
     const {platform}=make({commentResult:{code:0,data:{rpid}}});assert.deepEqual(await platform.sendComment({...scopeArgs,connectionRef:'ref',video:{aid:123},text:'fixture',idempotencyKey:'valid-receipt'}),{status:'sent',platformId:String(rpid)});
   }
+});
+
+test('full-reading HTTP preserves signed cue times for the host timing policy and identifies malformed text',async()=>{
+  const {platform}=make({subtitleBody:[{from:-2,to:1,content:'Fixture'}]});
+  const video=await platform.selectVideo({...scopeArgs,connectionRef:'ref',videoId:'BVmarine123'});
+  const material=await platform.acquireMaterial({...scopeArgs,connectionRef:'ref',video,fullReading:true});
+  assert.equal(material.items[0].start,-2);
+  const bad=make({subtitleBody:[{from:0,to:1,content:'   '}]});
+  await assert.rejects(bad.platform.acquireMaterial({...scopeArgs,connectionRef:'ref',video,fullReading:true}),{code:'BILI_FULL_CUES_INVALID',details:{cid:100,page:1,reason:'invalid-text'}});
 });
