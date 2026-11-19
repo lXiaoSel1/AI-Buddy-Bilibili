@@ -1,3 +1,14 @@
+## 2.0.18 — 2026-11-19
+
+- 配合本体 2.1.0：某个分 P 的整条字幕时间整体偏了整数小时、减去后正好落进视频时长时自动校正，并注明「字幕整体偏了 1 小时，已校正。」；对不上的字幕跳过，靠画面和简介接着看。字幕结构问题的暂停说明会写出分 P 和问题类型。
+- 还没生成阅读计划就停下的观看：详情说明没有可继续的进度，停止可以正常完成，「继续阅读」会在新的授权下重新获取视频、播放器和字幕。
+- 连接不能传图片时按暂停处理并说明原因；卡在整理感想时，观看安排页写「汇总感想时暂停」，已付费的结果保留，「继续」时先重新核对再接上（升级插件后也可以，需要本体 2.1.0）。
+- 2.0.17 只在本机测试过，没有公开发布。桥接版本（^1.3.0）、权限、合同和数据格式不变。
+- With AI Buddy 2.1.0, a part's subtitle track that is offset by a whole number of hours and fits the video once the offset is removed is corrected and labelled; a track that does not fit is skipped and reading continues from the frames and the description. Pauses for structural subtitle problems name the part and the kind of problem.
+- A viewing that stopped before its reading plan existed explains that there is nothing to resume, stopping completes normally, and Continue reading fetches the video, player and subtitle sources again under the new authorization.
+- A connection that cannot send images now pauses the reading with a reason. When only the notes are left, the schedule shows "Paused while organizing notes"; the paid result is kept and checked again on Continue, also after a plugin update (needs AI Buddy 2.1.0).
+- 2.0.17 was only tested locally and was not published. Plugin bridge (^1.3.0), capabilities, contract and data format are unchanged.
+
 ## 2.0.16 — 2026-11-10
 
 - 已经确认计划的阅读可以跨过午夜读完，也可以第二天继续，额度记在开始那天；日期和时间段只限制自动开始。

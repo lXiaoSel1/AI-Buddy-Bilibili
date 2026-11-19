@@ -11,7 +11,7 @@
 
 [AI 酱本体](https://github.com/lXiaoSel1/AI-Buddy) · **B站陪伴**（本仓库） · [QQ连接](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [一起玩牌](https://github.com/lXiaoSel1/AI-Buddy-Card-Games) · [语音](https://github.com/lXiaoSel1/AI-Buddy-Voice)
 
-**当前版本：2.0.16** · 需要 [AI 酱](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 或更新版本，建议用 2.0.7：更早的版本在部分线路上采集不到原视频分镜。这是 AI 酱的官方插件，在 AI 酱的 **扩展中心** 里安装，不用单独下载。
+**当前版本：2.0.18** · 需要 [AI 酱](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 或更新版本，建议用 2.1.0：字幕时间校正、升级插件后接着看完这些改进要本体 2.1.0 配合；2.0.7 之前的本体在部分线路上采集不到原视频分镜。这是 AI 酱的官方插件，在 AI 酱的 **扩展中心** 里安装，不用单独下载。
 
 让 AI 酱里的角色陪你看 B站视频。你给一个视频（或者让她按兴趣挑），她先列出完整的阅读计划，你确认后，她按固定间隔抽取的原视频画面和平台字幕把视频读完，写下自己的观察和观看笔记，之后聊天时也会记得。还可以预约每天的观看时间。发评论默认关闭，要另外授权。
 
@@ -88,9 +88,9 @@
 ## 她读了什么、没读什么
 
 - **画面**：按计划里的间隔从原视频抽帧，拼成带编号的分镜图交给模型；拿不到原视频时会暂停，不会拿平台的预览图冒充。
-- **字幕**：读 B站提供的字幕（优先中文，其次 AI 中文字幕和其他中文字幕）。**不读弹幕，也不听声音**：插件没有语音识别，视频没有字幕时，台词部分记为未知。
+- **字幕**：读 B站提供的字幕（优先中文，其次 AI 中文字幕和其他中文字幕）。**不读弹幕，也不听声音**：插件没有语音识别，视频没有字幕时，台词部分记为未知。2.0.18 起（配合本体 2.1.0），某个分 P 的整条字幕时间整体偏了整数小时、减去这个小时数后正好落进视频时长时，会自动校正，阅读计划里注明「P1 · 字幕整体偏了 1 小时，已校正。」这样的说明（分 P 和小时数按实际写）；对不上的字幕不用，靠画面和简介接着看，注明「P1 · 这条字幕的时间和视频对不上，已跳过字幕。」。字幕有空文本、编号重复这类结构问题时仍会暂停，说明里会写出是哪个分 P、哪一类问题。
 - **读完的标准**：计划里的每张拼图和每段字幕都要有成功的回执，才算读完；容量不够时会把一批拆小，不会丢掉画面或截掉结尾。
-- **出问题时**：缺少原视频、权限或模型能力（例如模型不能读图）时会暂停并说明原因，不会悄悄换模型。暂停、取消、换账号或换角色后，旧的执行作废；结果不明的请求不会自动重发。2.0.16 起，B站登录过期时阅读会暂停，提示「B站登录已过期，重新扫码后继续。」，不再悄悄改成只读标题和简介，暂停期间不调用模型；B站临时限制请求时另有说明，不当成登录过期。本体 2.0.14 起，处理视频或字幕超时的时候，已经做好的分镜和字幕会保留。从本体 2.0.7 起，视频地址、连接和分段响应的故障代码显示在「技术详情」。之前失败的观看记录会保留，更新后重新点「现在看」发起新的尝试。
+- **出问题时**：缺少原视频、权限或模型能力（例如模型不能读图）时会暂停并说明原因，不会悄悄换模型。暂停、取消、换账号或换角色后，旧的执行作废；结果不明的请求不会自动重发。2.0.16 起，B站登录过期时阅读会暂停，提示「B站登录已过期，重新扫码后继续。」，不再悄悄改成只读标题和简介，暂停期间不调用模型；B站临时限制请求时另有说明，不当成登录过期。本体 2.0.14 起，处理视频或字幕超时的时候，已经做好的分镜和字幕会保留。从本体 2.0.7 起，视频地址、连接和分段响应的故障代码显示在「技术详情」。之前失败的观看记录会保留，更新后重新点「现在看」发起新的尝试。2.0.18 起：所选连接不能传图片时会暂停，提示「当前模型连接无法传图片，请换成支持图片输入的连接。」；还没生成阅读计划就停下的观看，详情里写「这次观看还没生成计划，没有可继续的进度。」，**停止阅读** 照常可用，点 **继续阅读** 会重新获取视频和字幕；画面和字幕已经读完、卡在整理感想时，观看安排页写「汇总感想时暂停」。这时已经付费拿到的结果会保留，点 **继续** 先重新核对，能接上的那一步不再重复请求模型，升级插件之后也能接着看（需要本体 2.1.0）。
 - 读完只说明这些材料都交给了模型并拿到了结果，**不保证她完全看懂**，也不保证她说的每件事都对。
 
 ## 数据与权限
@@ -110,7 +110,7 @@
 
 ## 技术说明
 
-插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.16，需要 AI Buddy >= 2.0.2 和 DSH >= 0.2.1-rc.3，都只写下限。2.0.16 修了跨天阅读和登录过期的处理，桥接版本（^1.3.0）、合同、权限和数据格式都和 2.0.15 相同；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。2.0.14 的变化另见 [2.0.14 发行说明](RELEASE-NOTES-2.0.14.md)。
+插件包名 `@ai-buddy/bilibili-companion`，版本 2.0.18，需要 AI Buddy >= 2.0.2 和 DSH >= 0.2.1-rc.3，都只写下限。2.0.18 改进了字幕时间偏移、继续和停止的处理以及暂停说明（2.0.17 只在本机测试过，没有公开发布），桥接版本（^1.3.0）、合同、权限和数据格式都和 2.0.16 相同；数据 schema 为 1，minimumWriter 为 `0.1.0-dev.2`，旧版本不能写入新数据，恢复数据库也不会撤回已经发出的评论或已经记下的经历。默认值见 [`DEFAULTS.json`](plugins/bilibili-companion/DEFAULTS.json)，更新记录见 [CHANGELOG.md](CHANGELOG.md)。2.0.14 的变化另见 [2.0.14 发行说明](RELEASE-NOTES-2.0.14.md)。
 
 开发需要固定的 Node 24.21.0、npm 11.19.0 和 esbuild 0.28.2，在新的 checkout 里运行：
 
@@ -138,7 +138,7 @@ npm run repro
 
 [AI Buddy app](https://github.com/lXiaoSel1/AI-Buddy) · **Bilibili Companion** (this repository) · [QQ Connect](https://github.com/lXiaoSel1/AI-Buddy-QQ) · [Card Games](https://github.com/lXiaoSel1/AI-Buddy-Card-Games) · [Voice](https://github.com/lXiaoSel1/AI-Buddy-Voice)
 
-**Version 2.0.16** · requires [AI Buddy](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 or later. Use 2.0.7 if you can: earlier versions can fail to get the storyboard from the original video on some CDN routes. It is an official AI Buddy plugin, installed from AI Buddy's **Extensions** center; there is nothing to download separately.
+**Version 2.0.18** · requires [AI Buddy](https://github.com/lXiaoSel1/AI-Buddy) 2.0.2 or later. Use 2.1.0 if you can: subtitle timing correction and resuming after a plugin update need AI Buddy 2.1.0, and versions before 2.0.7 can fail to get the storyboard from the original video on some CDN routes. It is an official AI Buddy plugin, installed from AI Buddy's **Extensions** center; there is nothing to download separately.
 
 A character in AI Buddy watches Bilibili videos with you. Give her a video (or let her pick one by interest). She first lays out the full reading plan, and after you confirm, she reads the video from frames sampled at a fixed interval from the original video plus the platform subtitles, then writes her own observations and viewing notes, which she remembers in later chats. Daily viewing times can be scheduled. Comments are off by default and need separate permission. The pictures above show the Chinese interface with demo data.
 
@@ -173,9 +173,9 @@ Comments are authorized separately from watching. They start only after you choo
 ### What she reads and what she does not
 
 - **Frames** are sampled from the original video at the planned interval and assembled into numbered sheets. If the original video cannot be fetched, reading pauses; platform preview images are never passed off as samples.
-- **Subtitles** come from Bilibili (Chinese first, then AI Chinese and other Chinese tracks). **She does not read danmaku or listen to audio**: there is no speech recognition, so without subtitles the dialogue stays unknown.
+- **Subtitles** come from Bilibili (Chinese first, then AI Chinese and other Chinese tracks). **She does not read danmaku or listen to audio**: there is no speech recognition, so without subtitles the dialogue stays unknown. From 2.0.18 (with AI Buddy 2.1.0), when a part's whole subtitle track is offset by a whole number of hours and fits the video once that offset is removed, the timing is corrected and the reading plan says, for example, "P1 · Subtitles were offset by 1 hour. The timing has been corrected." (with the actual part and hours); a track that does not fit is skipped and she reads on from the frames and the description, with "P1 · The subtitle timing did not match the video. This subtitle track was skipped." Structural problems such as empty text or duplicate cue IDs still pause the reading, and the reason names the part and the kind of problem.
 - **Finished** means every planned sheet and every subtitle segment has a successful receipt. Batches are split when capacity runs short; frames are never dropped and the ending is never cut.
-- **When something is missing** (the original video, a permission, or a model that can read images), reading pauses with a reason and never switches models quietly. Pausing, cancelling or changing account or character invalidates the old run; requests with an unknown result are not replayed. From 2.0.16, an expired Bilibili login pauses the reading and asks you to sign in again instead of quietly falling back to the title and description, and no model is called while it is paused; temporary request limits from Bilibili are reported separately and are not treated as an expired login. From AI Buddy 2.0.14, when video or subtitle processing times out, the sheets and subtitles already prepared are kept. From AI Buddy 2.0.7, media-address, connection and range errors appear under Technical details. Failed viewing records stay; after updating, choose **Watch now** for a new attempt.
+- **When something is missing** (the original video, a permission, or a model that can read images), reading pauses with a reason and never switches models quietly. Pausing, cancelling or changing account or character invalidates the old run; requests with an unknown result are not replayed. From 2.0.16, an expired Bilibili login pauses the reading and asks you to sign in again instead of quietly falling back to the title and description, and no model is called while it is paused; temporary request limits from Bilibili are reported separately and are not treated as an expired login. From AI Buddy 2.0.14, when video or subtitle processing times out, the sheets and subtitles already prepared are kept. From AI Buddy 2.0.7, media-address, connection and range errors appear under Technical details. Failed viewing records stay; after updating, choose **Watch now** for a new attempt. From 2.0.18: if the chosen connection cannot send images, reading pauses with "The current model connection cannot send images. Choose a connection that supports image input."; a viewing that stopped before its reading plan existed says "This viewing has no plan and no progress to resume." in its details, **Stop reading** still works, and **Continue reading** fetches the video and subtitles again; when the frames and subtitles are done and only the notes are left, the schedule shows "Paused while organizing notes". The paid result is kept: **Continue** checks it again first, a step that can be accepted is not sent to the model again, and this also works after a plugin update (needs AI Buddy 2.1.0).
 - Finishing means the material reached the model and came back with results; **it does not guarantee she understood everything** or that every statement is right.
 
 ### Data and permissions
@@ -188,7 +188,7 @@ It uses unofficial Bilibili interfaces, which may change. A full real-account, r
 
 ### Technical notes
 
-Package `@ai-buddy/bilibili-companion` 2.0.16, requires AI Buddy >= 2.0.2 and DSH >= 0.2.1-rc.3, both lower bounds only. 2.0.16 fixes readings across midnight and expired logins; bridge version (^1.3.0), contract, permissions and data format are the same as 2.0.15; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md). See [CHANGELOG.md](CHANGELOG.md) for each version, and the [2.0.14 release notes](RELEASE-NOTES-2.0.14.md) for 2.0.14.
+Package `@ai-buddy/bilibili-companion` 2.0.18, requires AI Buddy >= 2.0.2 and DSH >= 0.2.1-rc.3, both lower bounds only. 2.0.18 improves subtitle time offsets, Continue and Stop handling, and pause explanations (2.0.17 was only tested locally and was not published); bridge version (^1.3.0), contract, permissions and data format are the same as 2.0.16; schema 1, minimumWriter `0.1.0-dev.2`. Development uses Node 24.21.0, npm 11.19.0 and esbuild 0.28.2: `npm ci`, `npm test`, `npm run build`, `npm run verify:artifacts`, `npm run repro`. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/VALIDATION.md](docs/VALIDATION.md). See [CHANGELOG.md](CHANGELOG.md) for each version, and the [2.0.14 release notes](RELEASE-NOTES-2.0.14.md) for 2.0.14.
 
 ### License and third parties
 
