@@ -352,3 +352,32 @@ test('the schedule Continue control reaches the same paid summary recovery',asyn
  assert.equal(f.state.models.length,0);
  assert.deepEqual(f.readKV(resultRef),invalid);
 });
+
+for(const blocked of ['target confirmation','expired life','explicit target'])test('global Continue resumes the right paused summary with '+blocked,async t=>{
+ const f=await fixture(t),older=await seedPriorSummaryRefs(f),newer=await seedPriorSummaryRefs(f);
+ const newestKey='full-activity-v206:'+newer.a.id,newest={...f.readKV(newestKey),startedAt:newer.a.startedAt+1};
+ if(blocked==='target confirmation'){
+  const plan=await f.call('schedule.create',{participants:['deepseek'],count:1,day:'2026-11-01',watchMode:'video',videoId:'BV12345678'});
+  newest.scheduleId=plan.id;
+  await f.restart();
+  assert.equal((await f.call('schedule.list')).find(schedule=>schedule.id===plan.id).requiresConfirmation,true);
+ }
+ if(blocked==='expired life')newest.lifeId='retired-life';
+ f.writeKV(newestKey,newest);
+ const received=await f.call('continue',blocked==='explicit target'?{activityId:older.a.id}:{});
+ assert.equal(received.id,older.a.id);
+ assert.equal(received.state,'completed');
+ assert.equal(f.readKV(newestKey).state,blocked==='expired life'?'cancelled':'paused');
+ assert.deepEqual(f.readKV(newer.resultRef),newer.invalid);
+ assert.equal(f.state.models.length,0);
+});
+
+test('a verified projection retains the exact graph pause and never submits another batch',async t=>{
+ const f=await fixture(t),{a,key,host,stepId}=await seedPriorSummaryRefs(f);
+ Object.assign(host,{phase:'paused',modelReason:'BILI_FULL_SUMMARY_GRAPH_CHANGED',finalProcessed:false,finalProviderRequestId:null});
+ const result=await f.call('reading.continue',{activityId:a.id});
+ assert.equal(result.state,'paused');
+ assert.equal(result.lastFailureCode,'BILI_FULL_SUMMARY_GRAPH_CHANGED');
+ assert.ok(f.readKV(key).results[stepId]);
+ assert.equal(f.state.models.length,0);
+});

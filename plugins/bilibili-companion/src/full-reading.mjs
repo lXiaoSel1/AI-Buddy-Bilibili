@@ -87,6 +87,7 @@ export async function runFullReading({a,c,lease,host,materials,signal,check,read
  assert(!Object.keys(record.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The paid invalid response is retained; start a separate reading instead of replaying it');
  assert(!record.pending,'BILI_VISION_UNCERTAIN','An earlier model submission is unknown and cannot be replayed');
  assert(state.needsReview!==true&&!state.calls?.some(call=>['submitted','unknown'].includes(call.status)),'BILI_VISION_UNCERTAIN','A recorded host submission needs review');
+ if(state.phase==='paused'&&['BILI_FULL_SUMMARY_NO_PROGRESS','BILI_FULL_SUMMARY_GRAPH_CHANGED'].includes(state.modelReason))throw Object.assign(Error(state.modelReason),{code:state.modelReason});
  let last=Object.values(record.results).at(-1),retry=0;if(last&&!last.material&&readResult)last=readResult(last.stepId)??last;
  while(state.phase!=='completed'){
   await check();const batch=await request('read',retry?{shrink:true}:{});assert(batch?.batchId&&Array.isArray(batch.material?.items)&&batch.material.items.length,'BILI_FULL_BATCH_MISMATCH','The host must provide an immutable reading batch');
