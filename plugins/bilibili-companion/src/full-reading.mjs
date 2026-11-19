@@ -5,6 +5,7 @@ import {parseModelResponse} from './model-response.mjs';
 import {validVisualUnderstanding,visualRequest} from './visual-reading.mjs';
 
 export const isFullReadingPause=code=>typeof code==='string'&&(code.startsWith('BILI_FULL_')||['BILI_MEDIA_BUSY','BILI_VISION_UNCERTAIN','SOCIAL_MODEL_RESULT_UNKNOWN','BILI_VISION_MODEL_UNSUPPORTED','MODEL_IMAGE_TRANSPORT_UNSUPPORTED','BILI_VISION_MODEL_REQUIRED','BILI_VISION_CACHE_MISSING','SOCIAL_MODEL_NOT_SUBMITTED'].includes(code));
+export const fullReadingSummaryPause=state=>state.phase==='paused'&&['BILI_FULL_SUMMARY_NO_PROGRESS','BILI_FULL_SUMMARY_GRAPH_CHANGED'].includes(state.modelReason)?state.modelReason:null;
 const unpack=v=>v?.reading??v;
 export const parseFullReadingUnderstanding=result=>parseModelResponse(result);
 const SUMMARY_EVIDENCE_RULE='bili-full-summary-evidence-v2';
@@ -87,7 +88,7 @@ export async function runFullReading({a,c,lease,host,materials,signal,check,read
  assert(!Object.keys(record.invalidReceipts??{}).length,'BILI_FULL_MATERIAL_NOT_COMPLETED','The paid invalid response is retained; start a separate reading instead of replaying it');
  assert(!record.pending,'BILI_VISION_UNCERTAIN','An earlier model submission is unknown and cannot be replayed');
  assert(state.needsReview!==true&&!state.calls?.some(call=>['submitted','unknown'].includes(call.status)),'BILI_VISION_UNCERTAIN','A recorded host submission needs review');
- if(state.phase==='paused'&&['BILI_FULL_SUMMARY_NO_PROGRESS','BILI_FULL_SUMMARY_GRAPH_CHANGED'].includes(state.modelReason))throw Object.assign(Error(state.modelReason),{code:state.modelReason});
+ const summaryPause=fullReadingSummaryPause(state);if(summaryPause)throw Object.assign(Error(summaryPause),{code:summaryPause});
  let last=Object.values(record.results).at(-1),retry=0;if(last&&!last.material&&readResult)last=readResult(last.stepId)??last;
  while(state.phase!=='completed'){
   await check();const batch=await request('read',retry?{shrink:true}:{});assert(batch?.batchId&&Array.isArray(batch.material?.items)&&batch.material.items.length,'BILI_FULL_BATCH_MISMATCH','The host must provide an immutable reading batch');

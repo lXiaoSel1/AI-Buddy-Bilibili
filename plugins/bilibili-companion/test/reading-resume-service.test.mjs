@@ -381,3 +381,17 @@ test('a verified projection retains the exact graph pause and never submits anot
  assert.ok(f.readKV(key).results[stepId]);
  assert.equal(f.state.models.length,0);
 });
+
+for(const reason of ['BILI_FULL_SUMMARY_NO_PROGRESS','BILI_FULL_SUMMARY_GRAPH_CHANGED'])test('detail recovery preserves '+reason+' in the schedule status',async t=>{
+ const f=await fixture(t),{a,host,resultRef,invalid}=await seedPriorSummaryRefs(f);
+ Object.assign(host,{phase:'paused',modelReason:reason,finalProcessed:false,finalProviderRequestId:null});
+ const detail=await f.call('reading.get',{activityId:a.id});
+ const card=(await f.call('history.list')).find(record=>record.id===a.id);
+ assert.equal(currentReadingReason(detail),reason);
+ assert.equal(card.lastFailureCode,reason);
+ assert.equal(card.pauseReason,reason);
+ assert.equal(card.state,'paused');
+ assert.equal(card.readingStage,'summary');
+ assert.deepEqual(f.readKV(resultRef),invalid);
+ assert.equal(f.state.models.length,0);
+});

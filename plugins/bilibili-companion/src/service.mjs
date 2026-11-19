@@ -10,7 +10,7 @@ import {understandingPrompt,publicCommentPrompt} from './prompts.mjs';
 import {inspectRuntimeProcess,runtimeOwnerAlive} from '../../../shared/runtime-owner.mjs';
 import {runVisualReading,isVisualPause,visualRequest,validVisualUnderstanding,retainVisualReceipt} from './visual-reading.mjs';
 import {parseModelResponse} from './model-response.mjs';
-import {runFullReading,isFullReadingPause,syncFullReadingRecord,recoverFullReadingRecord,recoverNotSentFullReading,verifiedFullReadingUnderstanding} from './full-reading.mjs';
+import {runFullReading,isFullReadingPause,fullReadingSummaryPause,syncFullReadingRecord,recoverFullReadingRecord,recoverNotSentFullReading,verifiedFullReadingUnderstanding} from './full-reading.mjs';
 
 const parse=v=>v?JSON.parse(v):null;
 const terminal=new Set(['completed','partial','failed','cancelled']);
@@ -122,11 +122,12 @@ export function createBilibiliService({databasePath,host,platform=null,now=Date.
   function applyReceiptRecovery(current,local,state){
     const next=recoverFullReadingRecord(local,state,(result,options)=>writeFullResult(current.id,result,options),stepId=>readFullResult(current.id,stepId));if(next===local)return;
     const recoveredStep=Object.keys(local.invalidReceipts??{}).find(stepId=>!next.invalidReceipts?.[stepId]&&next.results?.[stepId]&&next.recoveredInvalidReceipts?.[stepId]);
-    const recoveredInvalid=Boolean(recoveredStep),validation=next.recoveredInvalidReceipts?.[recoveredStep]?.fullReadingValidation;store.set('reading-full-v1:'+current.id,next);
+    const recoveredInvalid=Boolean(recoveredStep),validation=state.recoveredResults?.[0]?.fullReadingValidation;
+    const summaryPause=validation?fullReadingSummaryPause(state):null;store.set('reading-full-v1:'+current.id,next);
     if(current.lastFailureCode||recoveredInvalid&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.failureHistory=[...(current.failureHistory??[]),{code:current.lastFailureCode??null,pauseReason:current.pauseReason??null,at:current.updatedAt,recoveredAt:now(),...(validation?{recovery:validation.rule,ignoredEvidenceRefCount:validation.ignoredEvidenceRefs.length}:{})}];
     if(recoveredInvalid&&current.state==='paused'&&current.pauseReason==='BILI_FULL_MATERIAL_NOT_COMPLETED')current.pauseReason='receipt-recovered';
     if(current.state==='failed'){current.receiptRecoveryFailures=[...(current.receiptRecoveryFailures??[]),{code:current.lastFailureCode,at:current.updatedAt,recoveredAt:now()}];current.state='paused';current.pauseReason='receipt-recovered';}
-    const invalid=Object.keys(next.invalidReceipts??{}).length>0;current.needsReview=next.needsReview===true||!!next.pending;current.modelState=invalid?'returned':'prepared';current.lastFailureCode=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':null;if(invalid){current.state='paused';current.pauseReason='BILI_FULL_MATERIAL_NOT_COMPLETED';}save(current);
+    const invalid=Object.keys(next.invalidReceipts??{}).length>0;current.needsReview=next.needsReview===true||!!next.pending;current.modelState=invalid?'returned':'prepared';current.lastFailureCode=invalid?'BILI_FULL_MATERIAL_NOT_COMPLETED':summaryPause;if(invalid||summaryPause){current.state='paused';current.pauseReason=current.lastFailureCode;}save(current);
   }
   function recoverSummaryReceipt(current,local,state){
     const receipt=state.recoveredResults?.find(receipt=>receipt.fullReadingValidation!==undefined);
